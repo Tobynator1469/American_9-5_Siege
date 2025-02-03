@@ -20,6 +20,9 @@ public class LocalPlayer : MonoBehaviour
 
     private ServerManager manager = null;
 
+    private int offshoreMoney = 0;
+    private int currentRoundMoney = 0;
+
     private bool hasPlayer = false;
     private bool mouseLocked = false;
 
@@ -32,9 +35,9 @@ public class LocalPlayer : MonoBehaviour
     {
         if (this.owningPlayer)
         {
-            this.owningPlayer.UnbindOnDestroy();
-            this.owningPlayer.UnbindOnUpdate();
-            this.owningPlayer.UnbindOnChangeLivingState();
+            this.owningPlayer.UnbindOnDestroy(OnPlayerDestroyed);
+            this.owningPlayer.UnbindOnUpdate(OnPlayerUpdated);
+            this.owningPlayer.UnbindOnChangeLivingState(OnPlayerLivingStateChanged);
         }
 
         if(this.sensitivitySlider)
@@ -118,11 +121,6 @@ public class LocalPlayer : MonoBehaviour
         }
     }
 
-    private void SpectatePlayer()
-    {
-
-    }
-
     private void OnPlayerDestroyed(Player player, bool ByScene)
     {
         this.owningPlayer = null;
@@ -163,35 +161,6 @@ public class LocalPlayer : MonoBehaviour
         }
     }
 
-    private void OnPlayerBombStatusChanged(Player player, bool hasBomb)
-    {
-        if (gameState)
-        {
-            if (hasBomb)
-            {
-                gameState.ExecuteEvent("You have the Bomb!", 1.0f, 0.5f, 1.0f);
-            }
-            else
-            {
-                gameState.ExecuteEvent("You no longer have the Bomb!", 1.0f, 0.5f, 1.0f);
-            }
-        }
-    }
-
-    private void OnPlayerGameResultState(Player player, bool hasWon)
-    {
-        if (gameState)
-        {
-            if (hasWon)
-            {
-                gameState.ForceEvent("You Won!", 1.0f, 3.0f, 1.0f);
-            }
-            else
-            {
-                gameState.ForceEvent("You Lost!", 1.0f, 3.0f, 1.0f);
-            }
-        }
-    }
 
     public void BindNetworkPlayer(Player player)
     {

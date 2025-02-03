@@ -211,14 +211,14 @@ public class Player : NetworkBehaviour
     protected OnMovePlayerHook onMovePlayerHook = null;
     protected OnChangedLivingState onChangedLivingState = null;
 
-    public void BindOnUpdate(OnUpdatePlayer onUpdateValue) {this.onUpdatePlayer = onUpdateValue;}
-    public void BindOnDestroy(OnDestroyPlayer onDestroyValue) {this.onDestroyPlayer = onDestroyValue;}
-    public void BindOnChangeLivingState(OnChangedLivingState onChangedLivingState) {this.onChangedLivingState = onChangedLivingState;}
+    public void BindOnUpdate(OnUpdatePlayer onUpdateValue) {this.onUpdatePlayer += onUpdateValue;}
+    public void BindOnDestroy(OnDestroyPlayer onDestroyValue) {this.onDestroyPlayer += onDestroyValue;}
+    public void BindOnChangeLivingState(OnChangedLivingState onChangedLivingState) {this.onChangedLivingState += onChangedLivingState;}
     public void HookOnMovePlayer(OnMovePlayerHook onMovePlayerHook) { this.isMovementHooked = true; this.onMovePlayerHook = onMovePlayerHook;}
 
-    public void UnbindOnDestroy() { this.onDestroyPlayer = null; }
-    public void UnbindOnUpdate() { this.onUpdatePlayer = null; }
-    public void UnbindOnChangeLivingState() { this.onChangedLivingState = null; }
+    public void UnbindOnDestroy(OnDestroyPlayer onDestroyValue) { this.onDestroyPlayer -= onDestroyValue; }
+    public void UnbindOnUpdate(OnUpdatePlayer onUpdateValue) { this.onUpdatePlayer -= onUpdateValue; }
+    public void UnbindOnChangeLivingState(OnChangedLivingState onChangedLivingState) { this.onChangedLivingState -= onChangedLivingState; }
 
     public void UnhookOnMovePlayer() { this.isMovementHooked = false; this.onMovePlayerHook = null; }
 
@@ -684,6 +684,19 @@ public class Player : NetworkBehaviour
         }
 
         return data;
+    }
+
+    protected bool CheckServerAuthority(RpcParams rpcParams)
+    {
+        var SenderID = rpcParams.Receive.SenderClientId;
+
+        if (!ServerManager.CheckAuthorityServer(rpcParams))
+        {
+            DebugClass.Log($"Player with ID: {SenderID}, tried Executing unauthorized Server Code");
+            return false;
+        }
+
+        return true;
     }
 
     protected bool CheckAuthority(RpcParams rpcParams)

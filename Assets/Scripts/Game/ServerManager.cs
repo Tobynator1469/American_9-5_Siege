@@ -220,6 +220,9 @@ public class ServerManager : NetworkBehaviour
     [Rpc(SendTo.SpecifiedInParams)]
     public void CreateLocalPlayerRpc(ulong EntityID, RpcParams toSender)
     {
+        if (!CheckAuthorityServer(toSender))
+            return;
+
         var localPlayer = GetNetworkObject(EntityID);
 
         var inst = Instantiate(localPlayerPrefab, localPlayer.transform.position + (Vector3.up * defaultHeadHeight), localPlayer.transform.rotation);
@@ -345,6 +348,9 @@ public class ServerManager : NetworkBehaviour
     [Rpc(SendTo.SpecifiedInParams)]
     public void SendPlayerDataClientRpc(PlayersData receivingData, RpcParams rpcParams)
     {
+        if (!CheckAuthorityServer(rpcParams))
+            return;
+
         var playerArray = receivingData.Players;
 
         for (int i = 0; i < playerList.Count; i++)
@@ -554,5 +560,10 @@ public class ServerManager : NetworkBehaviour
     public float GetDefaultPlayerRunSpeed()
     {
         return defaultPlayerRunningSpeed;
+    }
+
+    static public bool CheckAuthorityServer(RpcParams param)
+    {
+        return param.Receive.SenderClientId == 0;
     }
 }

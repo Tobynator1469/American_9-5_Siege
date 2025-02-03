@@ -3,35 +3,30 @@ using UnityEngine;
 
 struct ThiefPlayerData : INetworkSerializable
 {
-    public PlayerUpdateData baseData;
+    public AMSPlayerData baseData;
 
-    public char hasWon;
-    public char isInSafeZone;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
         if (serializer.IsReader)
         {
             serializer.SerializeValue(ref baseData);
-            serializer.SerializeValue(ref hasWon);
-            serializer.SerializeValue(ref isInSafeZone);
+            //serializer.SerializeValue(ref hasWon);
+            //serializer.SerializeValue(ref isInSafeZone);
         }
         else
         {
             serializer.SerializeValue(ref baseData);
-            serializer.SerializeValue(ref hasWon);
-            serializer.SerializeValue(ref isInSafeZone);
+            //serializer.SerializeValue(ref hasWon);
+            //serializer.SerializeValue(ref isInSafeZone);
         }
     }
 }
 
-public class ThiefPlayer : Player
+public class ThiefPlayer : AMSPlayer
 {
     [SerializeField]
     public GameObject[] itemHands = new GameObject[2];
-
-    public PBool isInSafeZone = new PBool(false);
-    public PBool hasWon = new PBool(false);
 
     public int lockpicks = 0;
 
@@ -41,11 +36,11 @@ public class ThiefPlayer : Player
     private OnChangedSafeZoneState onChangedBombHoldState = null;
     private OnGameResultState onGameResultState = null;
 
-    public void BindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedBombHoldState = onChangedBombHoldState; }
-    public void BindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState = onGameResultState; }
+    public void BindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedBombHoldState += onChangedBombHoldState; }
+    public void BindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState += onGameResultState; }
 
-    public void UnbindOnChangedBombHoldState() { this.onChangedBombHoldState = null; }
-    public void UnbindOnGameResultState() { this.onGameResultState = null; }
+    public void UnbindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedBombHoldState -= onChangedBombHoldState; }
+    public void UnbindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState -= onGameResultState; }
 
     [ServerRpc]
     protected override void DeframeBools_ServerRpc()
@@ -63,7 +58,8 @@ public class ThiefPlayer : Player
     [ClientRpc]
     private void OnNetworkUpdateData_ClientRpc(ThiefPlayerData data_)
     {
-        PlayerUpdateData data = data_.baseData;
+        PlayerUpdateData data = data_.baseData.baseData;
+        AMSPlayerData psData = data_.baseData;
 
         if (this.playerRigidBody)
         {
@@ -74,8 +70,8 @@ public class ThiefPlayer : Player
         this.currentStamina = data.stamina;
 
         PBool livingState = new PBool(data.isAlive);
-        PBool SafeZoneState = new PBool(data_.isInSafeZone);
-        PBool wonState = new PBool(data_.hasWon);
+        PBool SafeZoneState = new PBool(psData.isInSafeZone);
+        PBool wonState = new PBool(psData.hasWon);
 
         switch (livingState.GetState())
         {
@@ -136,43 +132,31 @@ public class ThiefPlayer : Player
     {
         ThiefPlayerData dataOut = new ThiefPlayerData();
 
-        dataOut.baseData = CraftPlayerUpdateData();
+        dataOut.baseData = CraftAMSPlayerData();
 
-        dataOut.isInSafeZone = (isInSafeZone.GetCharState());
-        dataOut.hasWon = (hasWon.GetCharState());
+        dataOut.baseData.isInSafeZone = (isInSafeZone.GetCharState());
+        dataOut.baseData.hasWon = (hasWon.GetCharState());
 
         return dataOut;
+    }
+
+
+    [Rpc(SendTo.Server)]
+    public void PlayerTryLockPick_ServerRpc(RpcParams rpcParams = default)
+    {
+        if (!CheckAuthority(rpcParams) || !CanLockPick())
+            return;
+
+
+    }
+
+    private bool CanLockPick()
+    {
+        return lockpicks > 0;
     }
 
     public bool IsObjectLockPickable(/*LockPickable obj*/)
     {
         return true;
-    }
-
-    [ServerRpc]
-    public void PlayerChangeSafeZoneState_ServerRpc(bool isInSafeZone)
-    {
-        if (isInSafeZone)
-            this.isInSafeZone = new PBool(PBool.EBoolState.TrueThisFrame);
-        else
-            this.isInSafeZone = new PBool(PBool.EBoolState.FalseThisFrame);
-    }
-
-    [ServerRpc]
-    public void PlayerGameResult_ServerRpc(bool hasWon)
-    {
-        if (hasWon)
-            this.hasWon = new PBool(PBool.EBoolState.TrueThisFrame);
-        else
-            this.hasWon = new PBool(PBool.EBoolState.FalseThisFrame);
-    }
-
-    [Rpc(SendTo.Server)]
-    public void PlayerTryLockPick_ServerRpc(RpcParams rpcParams = default)
-    {
-        if (!CheckAuthority(rpcParams))
-            return;
-
-
     }
 }
