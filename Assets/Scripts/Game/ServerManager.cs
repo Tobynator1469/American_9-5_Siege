@@ -103,6 +103,8 @@ public class ServerManager : NetworkBehaviour
         StartGameBtn.onClick.AddListener(this.OnStartGameBtnServerRpc);
 
         StartGameBtn.gameObject.SetActive(false);
+
+        OnStartServer();
     }
 
     private void OnDestroy()
@@ -131,6 +133,11 @@ public class ServerManager : NetworkBehaviour
         }
 
         OnUpdateServer();
+    }
+
+    protected virtual void OnStartServer()
+    {
+
     }
 
     protected virtual void OnDestroyServer() //Called on Client and Server!!

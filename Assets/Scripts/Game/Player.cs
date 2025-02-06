@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using Assets.Scripts;
+using static AMSPlayer;
 
 public struct PBool
 {
@@ -408,32 +409,7 @@ public class Player : NetworkBehaviour
     [ClientRpc]
     private void OnNetworkUpdateData_ClientRpc(PlayerUpdateData data)
     {
-        if(this.playerRigidBody)
-        {
-            this.playerRigidBody.position = data.position;
-            this.playerRigidBody.linearVelocity = data.velocity;
-        }
-
-        this.currentStamina = data.stamina;
-        
-        PBool livingState = new PBool(data.isAlive);
-
-        switch(livingState.GetState())
-        {
-            case PBool.EBoolState.FalseThisFrame:
-                if(onChangedLivingState != null)
-                    onChangedLivingState(this, false);
-
-                isAlive = new PBool(PBool.EBoolState.False);
-            break;
-
-            case PBool.EBoolState.TrueThisFrame:
-                if (onChangedLivingState != null)
-                    onChangedLivingState(this, true);
-
-                isAlive = new PBool(PBool.EBoolState.True);
-            break;
-        }
+        UnpackServerData_PlayerData(data);
 
         if (onUpdatePlayer != null)
             onUpdatePlayer(this);
@@ -684,6 +660,36 @@ public class Player : NetworkBehaviour
         }
 
         return data;
+    }
+
+    protected void UnpackServerData_PlayerData(PlayerUpdateData data)
+    {
+        if (this.playerRigidBody)
+        {
+            this.playerRigidBody.position = data.position;
+            this.playerRigidBody.linearVelocity = data.velocity;
+        }
+
+        this.currentStamina = data.stamina;
+
+        PBool livingState = new PBool(data.isAlive);
+
+        switch (livingState.GetState())
+        {
+            case PBool.EBoolState.FalseThisFrame:
+                if (onChangedLivingState != null)
+                    onChangedLivingState(this, false);
+
+                isAlive = new PBool(PBool.EBoolState.False);
+                break;
+
+            case PBool.EBoolState.TrueThisFrame:
+                if (onChangedLivingState != null)
+                    onChangedLivingState(this, true);
+
+                isAlive = new PBool(PBool.EBoolState.True);
+                break;
+        }
     }
 
     protected bool CheckServerAuthority(RpcParams rpcParams)

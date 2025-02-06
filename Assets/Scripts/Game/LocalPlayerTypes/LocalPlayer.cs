@@ -67,6 +67,16 @@ public class LocalPlayer : MonoBehaviour
         OnUpdatePlayersUI();
     }
 
+    protected virtual void OnInitialized()
+    {
+
+    }
+
+    protected virtual void OnDestroyed()
+    {
+
+    }
+
     private void OnPlayerDestroyed(Player player, bool ByScene)
     {
         SetShowUi(false);
@@ -148,6 +158,8 @@ public class LocalPlayer : MonoBehaviour
 
             this.sensitivitySlider.onValueChanged.AddListener(OnSensitivityChanged);
         }
+
+        OnInitialized();
     }
 
     private void OnSensitivityChanged(float value)
@@ -193,7 +205,8 @@ public class LocalPlayer : MonoBehaviour
         }
     }
 
-    virtual protected void OnUpdateClientControls()
+    // Called only when localplayer is bound to Player
+    virtual protected void OnUpdateClientControls() 
     {
         if (Input.GetKeyDown(KeyCode.LeftAlt))
         {

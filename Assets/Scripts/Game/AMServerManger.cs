@@ -24,18 +24,33 @@ public class AMServerManger : ServerManager
     [SerializeField]
     private GameObject SpectatorSpawnLocation = null;
 
-    Dictionary<ulong,  PlayerTeam> teams;
+    Dictionary<ulong,  PlayerTeam> teams = new Dictionary<ulong, PlayerTeam>();
+    Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
 
-    private float timeTillStart = 0.0f;
+    private float defaultRaycastDistance = 2.0f;
+
+    private float timeTillStart = 4.0f;
     private float timeTillStartCur = 0.0f;
+
+    private int InteractableLayer = 0;
 
     private bool startGame = false;
     private bool hasGameStarted = false;
 
+    protected override void OnStartServer()
+    {
+        InteractableLayer = 1 << LayerMask.NameToLayer("Interactable");
+    }
+
     [ServerRpc]
     protected override void OnStartGameBtnServerRpc()
     {
-        if(!startGame && !hasGameStarted)
+        foreach (var connected in connectedPlayers)
+        {
+            connected.Value.SetPendingGameStart_ServerRpc(true);
+        }
+
+        if (!startGame && !hasGameStarted)
         {
             startGame = true;
 
@@ -74,6 +89,10 @@ public class AMServerManger : ServerManager
             RemovePlayer(playerInstance);
         }
     }
+    private void OnInitializeAMS_PlayerDefaults(AMSPlayer player)
+    {
+        player.raycastDistance = defaultRaycastDistance;
+    }
 
     [ServerRpc]
     private void SpawnPlayer_ServerRpc(PlayerTeam team, ulong id)
@@ -86,6 +105,8 @@ public class AMServerManger : ServerManager
 
         GameObject instance = null;
 
+        bool isSpectator = false;
+
         switch (team)
         {
             case PlayerTeam.Thief:
@@ -96,6 +117,7 @@ public class AMServerManger : ServerManager
                 break;
             case PlayerTeam.Spectator:
                 instance = Instantiate(SpectatorPrefab, transform.position, transform.rotation);
+                isSpectator = true;
                 break;
 
             default:
@@ -107,15 +129,27 @@ public class AMServerManger : ServerManager
 
         IntializeDefaults_PlayerComp(playerComp);
 
+        if(!isSpectator)
+        {
+            var amsCast = (AMSPlayer)playerComp;
+
+            OnInitializeAMS_PlayerDefaults(amsCast);
+
+            if (!connectedPlayers.ContainsKey(id))
+                connectedPlayers.Add(id, amsCast);
+        }
+
         playerComp.BindOnDestroy(OnPlayerDestroyed);
+
+        playerComp.id = id;
 
         playerComp.playerName = playerName;
 
-        ShareNewNameClientRpc(netObjComp.NetworkObjectId, playerName);
-
         netObjComp.Spawn(true);
 
-        CreateLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(playerComp.id, RpcTargetUse.Temp));
+        CreateLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
+
+        ShareNewNameClientRpc(netObjComp.NetworkObjectId, playerName);
     }
 
     [ServerRpc]
@@ -127,12 +161,38 @@ public class AMServerManger : ServerManager
         }
     }
 
-    [Rpc(SendTo.SpecifiedInParams)]
-    public void SwitchTeams_Rpc(PlayerTeam teamSelected, RpcParams rpcParams = default)
-    {
-        var pID = rpcParams.Receive.SenderClientId;
 
-        if (!hasGameStarted)
+    [ServerRpc]
+    public void OnPlayerTryInteract_ServerRpc(ulong ID, float YDirection)
+    {
+        var player = (AMSPlayer)FindPlayer(ID);
+
+        if(player && player.CanInteract())
+        {
+            var transform = player.transform;
+
+            Vector3 direction = player.transform.forward;
+
+            direction.y = YDirection;
+
+            player.rayCastObj.transform.position = transform.position + (direction * player.raycastDistance);
+
+            if (Physics.Raycast(transform.position, direction, out RaycastHit hitInfo, player.raycastDistance, InteractableLayer))
+            {
+                if(hitInfo.transform.TryGetComponent<Interactable>(out Interactable interactable))
+                {
+                    interactable.Interact_ServerRpc(ID);
+                }
+            }
+        }
+    }
+
+    [ServerRpc]
+    public void OnPlayerSwitchTeams_ServerRpc(ulong ID, PlayerTeam teamSelected)
+    {
+        var pID = ID;
+
+        if (hasGameStarted)
         {
             DebugClass.Log("Unauthorized Team switch, from player with ID: " + pID);
             return;
@@ -146,5 +206,15 @@ public class AMServerManger : ServerManager
         {
             teams.Add(pID, teamSelected);
         }
+    }
+
+    protected AMSPlayer FindConnectedPlayer(ulong ID)
+    {
+        if(connectedPlayers.TryGetValue(ID, out var player))
+        { 
+            return player;
+        }
+
+        return null;
     }
 }

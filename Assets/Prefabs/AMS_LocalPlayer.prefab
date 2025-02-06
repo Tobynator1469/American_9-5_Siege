@@ -373,7 +373,7 @@ GameObject:
   - component: {fileID: 1445679046343612327}
   - component: {fileID: 4518860815376417241}
   - component: {fileID: 3305176947293689503}
-  - component: {fileID: -1329141315864010036}
+  - component: {fileID: 6472856627598556531}
   m_Layer: 0
   m_Name: AMS_LocalPlayer
   m_TagString: Untagged
@@ -427,7 +427,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-1329141315864010036
+--- !u!114 &6472856627598556531
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -436,7 +436,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2796460298511892742}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ecee4938a302a2048864e77fffae3fb5, type: 3}
+  m_Script: {fileID: 11500000, guid: f1af086f6fefba04b97908b2c996ad08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   staminaBar: {fileID: 1256793389441014172}
