@@ -1691,7 +1691,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 874202259}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8044bf3838ec81f41aa50a4c2705681a, type: 3}
+  m_Script: {fileID: 11500000, guid: e99074ccc06421c4a86d60f34d97f15d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   loginButton: {fileID: 1215012068}

@@ -26,6 +26,16 @@ public struct AMSPlayerData : INetworkSerializable
 
 public abstract class AMSPlayer : Player
 {
+    public delegate void OnChangedSafeZoneState(Player _this, bool isInSafeZone);
+    public delegate void OnGameResultState(Player _this, bool hasWon);
+
+    protected OnChangedSafeZoneState onChangedSafeZoneState = null;
+    protected OnGameResultState onGameResultState = null;
+    public void BindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedSafeZoneState += onChangedBombHoldState; }
+    public void BindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState += onGameResultState; }
+    public void UnbindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedSafeZoneState -= onChangedBombHoldState; }
+    public void UnbindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState -= onGameResultState; }
+
     public int offshoreMoney = 0;
     public int roundMoney = 0;
 
@@ -56,9 +66,14 @@ public abstract class AMSPlayer : Player
         if (!CheckAuthority(rpcParams))
             return;
 
-        var srvManager = this.serverManager.GetComponent<AMServerManger>();
-
         int _offshoreMoney = 0;
+
+        if(this.serverManager)
+        {
+            //Call Server Manager to get Offshore Value from Sql Server
+
+            var srvManager = this.serverManager.GetComponent<AMServerManger>();
+        }
 
         OnGatheredOffshoreMoney_Rpc(_offshoreMoney, RpcTarget.Single(this.id, RpcTargetUse.Temp));
     }
@@ -68,6 +83,8 @@ public abstract class AMSPlayer : Player
     {
         if (!CheckServerAuthority(rpcParams))
             return;
+
+        offshoreMoney = offshore;
     }
 
     protected AMSPlayerData CraftAMSPlayerData()

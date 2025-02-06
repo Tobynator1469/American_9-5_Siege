@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.LowLevel;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
@@ -132,12 +133,12 @@ public class ServerManager : NetworkBehaviour
         OnUpdateServer();
     }
 
-    protected virtual void OnDestroyServer()
+    protected virtual void OnDestroyServer() //Called on Client and Server!!
     {
 
     }
 
-    protected virtual void OnUpdateServer()
+    protected virtual void OnUpdateServer() //Called on Client and Server!!
     {
 
     }
@@ -169,6 +170,21 @@ public class ServerManager : NetworkBehaviour
 
     }
 
+    protected void IntializeDefaults_PlayerComp(Player player)
+    {
+        player.jumpHeight = defaultJumpHeight;
+        player.movementSpeed = defaultPlayerSpeed;
+
+        player.degenStaminaAmount = defaultDegenStamina;
+        player.gravity = defaultPlayerGravity;
+        player.playerDrag = defaultPlayerDrag;
+        player.regenStaminaAmount = defaultRegenStamina;
+        player.runningSpeed = defaultPlayerRunningSpeed;
+        player.maxStamina = defaultMaxStamina;
+        player.SetStamina(defaultMaxStamina);
+        player.terminalVelocity = defaultTerminalVelocity;
+    }
+
     [ServerRpc]
     public void CreatePlayerServerRpc(string Cookie, ulong connectionID = 0, ServerRpcParams ServerRpcParams = default)
     {
@@ -184,23 +200,9 @@ public class ServerManager : NetworkBehaviour
             var netObjComp = instance.GetComponent<NetworkObject>();
             var playerComp = netObjComp.GetComponent<Player>();
 
-            playerComp.jumpHeight = defaultJumpHeight;
-            playerComp.movementSpeed = defaultPlayerSpeed;
+            IntializeDefaults_PlayerComp(playerComp);
 
-            playerComp.degenStaminaAmount = defaultDegenStamina;
-            playerComp.gravity = defaultPlayerGravity;
-            playerComp.playerDrag = defaultPlayerDrag;
-            playerComp.regenStaminaAmount = defaultRegenStamina;
-            playerComp.runningSpeed = defaultPlayerRunningSpeed;
-            playerComp.maxStamina = defaultMaxStamina;
-            playerComp.SetStamina(defaultMaxStamina);
-            playerComp.terminalVelocity = defaultTerminalVelocity;
-
-            if (connectionID != 0)
-            {
-                playerComp.BindOnDestroy(OnPlayerDestroyed);
-            }
-                
+            playerComp.BindOnDestroy(OnPlayerDestroyed);
 
             netObjComp.Spawn(true);
 
@@ -218,7 +220,7 @@ public class ServerManager : NetworkBehaviour
     }
 
     [Rpc(SendTo.SpecifiedInParams)]
-    public void CreateLocalPlayerRpc(ulong EntityID, RpcParams toSender)
+    protected void CreateLocalPlayerRpc(ulong EntityID, RpcParams toSender)
     {
         if (!CheckAuthorityServer(toSender))
             return;
@@ -241,7 +243,7 @@ public class ServerManager : NetworkBehaviour
 
     public IEnumerator<UnityWebRequestAsyncOperation> FindPlayerName(ulong entityID, ulong connectionID, string Cookie)
     {
-        if(IsHost) // 
+        if(IsHost)
         {
             var webrequest = UnityWebRequest.Get($"{Login.host_}/Api/User.php?cookie={Cookie}");
 
@@ -259,7 +261,8 @@ public class ServerManager : NetworkBehaviour
 
                     if (response != null && response.TryGetValue("ID", out string name))
                     {
-                        ShareNewNameClientRpc(entityID, name);
+                        if(GetNetworkObject(entityID))
+                            ShareNewNameClientRpc(entityID, name);
                     }
                     else
                     {
@@ -275,9 +278,8 @@ public class ServerManager : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void ShareNewNameClientRpc(ulong entityID, string newName)
+    protected void ShareNewNameClientRpc(ulong entityID, string newName)
     {
-
         var obj = GetNetworkObject(entityID);
 
         if (obj)
@@ -371,7 +373,7 @@ public class ServerManager : NetworkBehaviour
         }
     }
 
-    private void OnPlayerCompletlyConnectedInternal(ulong id)
+    protected void OnPlayerCompletlyConnectedInternal(ulong id)
     {
         NetworkManager.Singleton.OnClientConnectedCallback -= OnPlayerCompletlyConnectedInternal;
 
@@ -379,7 +381,7 @@ public class ServerManager : NetworkBehaviour
 
         OnPlayerCompletlyConnectedRpc(Login.currentCookie);
     }
-    private void OnPlayerDestroyed(Player player, bool ByScene)
+    protected void OnPlayerDestroyed(Player player, bool ByScene)
     {
         RemovePlayer(player);
     }
@@ -453,7 +455,7 @@ public class ServerManager : NetworkBehaviour
 
             int calc = Mathf.RoundToInt(someCalculation);
 
-            for (int i = 0; i < calc;)
+            for (int i = 0; i < calc; i++)
             {
                 for (int i1 = 0; i1 < spawnPoints.Length; i1++, i++)
                 {
@@ -480,7 +482,7 @@ public class ServerManager : NetworkBehaviour
 
             int calc = Mathf.RoundToInt(someCalculation);
 
-            for (int i = 0; i < calc;)
+            for (int i = 0; i < calc; i++)
             {
                 for (int i1 = 0; i1 < spawnPoints.Length; i1++, i++)
                 {

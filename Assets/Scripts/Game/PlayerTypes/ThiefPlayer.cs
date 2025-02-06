@@ -5,7 +5,6 @@ struct ThiefPlayerData : INetworkSerializable
 {
     public AMSPlayerData baseData;
 
-
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
         if (serializer.IsReader)
@@ -29,18 +28,6 @@ public class ThiefPlayer : AMSPlayer
     public GameObject[] itemHands = new GameObject[2];
 
     public int lockpicks = 0;
-
-    public delegate void OnChangedSafeZoneState(Player _this, bool isInSafeZone);
-    public delegate void OnGameResultState(Player _this, bool hasWon);
-
-    private OnChangedSafeZoneState onChangedBombHoldState = null;
-    private OnGameResultState onGameResultState = null;
-
-    public void BindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedBombHoldState += onChangedBombHoldState; }
-    public void BindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState += onGameResultState; }
-
-    public void UnbindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedBombHoldState -= onChangedBombHoldState; }
-    public void UnbindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState -= onGameResultState; }
 
     [ServerRpc]
     protected override void DeframeBools_ServerRpc()
@@ -93,15 +80,15 @@ public class ThiefPlayer : AMSPlayer
         switch (SafeZoneState.GetState())
         {
             case PBool.EBoolState.FalseThisFrame:
-                if (onChangedBombHoldState != null)
-                    onChangedBombHoldState(this, false);
+                if (onChangedSafeZoneState != null)
+                    onChangedSafeZoneState(this, false);
 
                 isInSafeZone = new PBool(PBool.EBoolState.False);
                 break;
 
             case PBool.EBoolState.TrueThisFrame:
-                if (onChangedBombHoldState != null)
-                    onChangedBombHoldState(this, true);
+                if (onChangedSafeZoneState != null)
+                    onChangedSafeZoneState(this, true);
 
                 isInSafeZone = new PBool(PBool.EBoolState.True);
                 break;
