@@ -107,12 +107,16 @@ public class ServerManager : NetworkBehaviour
         OnStartServer();
     }
 
-    private void OnDestroy()
+    public override void OnNetworkDespawn()
     {
-        base.OnDestroy();
+        base.OnNetworkDespawn();
 
-        if(NetworkManager.Singleton)
+        if (NetworkManager.Singleton)
             NetworkManager.Singleton.OnClientConnectedCallback -= HandlePlayerJoin;
+
+        JoinBtn.onClick.RemoveListener(this.ClientFindAndConnect);
+        HostBtn.onClick.RemoveListener(this.HostServer);
+        StartGameBtn.onClick.RemoveListener(this.OnStartGameBtnServerRpc);
 
         OnDestroyServer();
     }

@@ -198,7 +198,9 @@ MonoBehaviour:
   currentStamina: 0
   raycastDistance: 4
   offshoreMoney: 0
-  roundMoney: 0
+  playerHealth: 0
+  lastUpdateRoundMoney: 0
+  currentUpdateRoundMoney: 0
 --- !u!1 &1452520740376009393
 GameObject:
   m_ObjectHideFlags: 0

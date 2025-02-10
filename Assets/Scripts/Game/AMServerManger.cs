@@ -26,8 +26,13 @@ public class AMServerManger : ServerManager
     [SerializeField]
     private GameObject SpectatorSpawnLocation = null;
 
+    private AMS_GameState gameState = null; //Current Game State
+
     Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
-    Dictionary<PlayerTeam, List<ulong>> teams = new Dictionary<PlayerTeam, List<ulong>>();
+
+    Dictionary<PlayerTeam, List<ulong>> teams = new()
+    { { PlayerTeam.Thief, new List<ulong>() }, { PlayerTeam.Defender, new List<ulong>() }, { PlayerTeam.Spectator, new List<ulong>() } };
+
     Dictionary<ulong, PlayerTeam> players = new Dictionary<ulong, PlayerTeam>();
 
     private float defaultRaycastDistance = 4.0f;
@@ -42,27 +47,6 @@ public class AMServerManger : ServerManager
 
     protected override void OnStartServer()
     {
-        for (int i = 0; i < Enum.GetValues(typeof(PlayerTeam)).Length; i++)
-        {
-            PlayerTeam team_ = (PlayerTeam)i;
-
-            switch (team_)
-            {
-                case PlayerTeam.Thief:
-                    teams.Add(PlayerTeam.Thief, new List<ulong>());
-                    break;
-                case PlayerTeam.Defender:
-                    teams.Add(PlayerTeam.Defender, new List<ulong>());
-                    break;
-                case PlayerTeam.Spectator:
-                    teams.Add(PlayerTeam.Spectator, new List<ulong>());
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
         InteractableLayer = 1 << LayerMask.NameToLayer("Interactable");
     }
 
@@ -157,7 +141,7 @@ public class AMServerManger : ServerManager
         {
             var amsCast = (AMSPlayer)playerComp;
 
-            OnInitializeAMS_PlayerDefaults(amsCast);
+            //OnInitializeAMS_PlayerDefaults(amsCast);
 
             if (!connectedPlayers.ContainsKey(id))
                 connectedPlayers.Add(id, amsCast);
@@ -174,12 +158,16 @@ public class AMServerManger : ServerManager
         CreateLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
 
         ShareNewNameClientRpc(netObjComp.NetworkObjectId, playerName);
+
+        ShareNewPlayerTeam_ClientRpc(netObjComp.NetworkObjectId, team);
     }
 
     [ServerRpc]
     private void OnGameStarted_ServerRpc()
     {
-        foreach (var item in players)
+        var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(players);
+
+        foreach (var item in playerEntries)
         {
             SpawnPlayer_ServerRpc(item.Value, item.Key);
         }
@@ -220,11 +208,11 @@ public class AMServerManger : ServerManager
 
         if (hasGameStarted)
         {
-            DebugClass.Log("Unauthorized Team switch, from player with ID: " + pID);
+            //DebugClass.Log("Unauthorized Team switch, from player with ID: " + pID);
             return;
         }
 
-        SwitchPlayerToTeam(ID, teamSelected);
+        SwitchPlayerToTeam_ClientRpc(ID, teamSelected);
     }
 
     [ServerRpc]
@@ -244,6 +232,27 @@ public class AMServerManger : ServerManager
         }
     }
 
+    [ClientRpc]
+    protected void ShareNewPlayerTeam_ClientRpc(ulong entityID, PlayerTeam team)
+    {
+        var obj = GetNetworkObject(entityID);
+
+        if (obj)
+        {
+            var playerComp = obj.GetComponent<AMSPlayer>();
+
+            if (playerComp)
+            {
+                playerComp.currentTeam = team;
+                playerComp.hasChangedTeam = new PBool(PBool.EBoolState.TrueThisFrame);
+            }
+            else
+                DebugClass.Log("Object didnt have PlayerComponent");
+        }
+        else
+            DebugClass.Log("Object id was invalid");
+    }
+
     protected AMSPlayer FindConnectedPlayer(ulong pID)
     {
         if(connectedPlayers.TryGetValue(pID, out var player))
@@ -254,9 +263,13 @@ public class AMServerManger : ServerManager
         return null;
     }
 
-    protected void SwitchPlayerToTeam(ulong pID, PlayerTeam team)
+    [ClientRpc]
+    protected void SwitchPlayerToTeam_ClientRpc(ulong pID, PlayerTeam team)
     {
         var curTeam = FindPlayerTeam(pID);
+
+        if (curTeam == team) 
+            return;
 
         if (curTeam != PlayerTeam.None)
         {
@@ -286,8 +299,15 @@ public class AMServerManger : ServerManager
 
     protected override void OnPlayerLeft(Player player)
     {
-        SwitchPlayerToTeam(player.id, PlayerTeam.None);
+        SwitchPlayerToTeam_ClientRpc(player.id, PlayerTeam.None);
 
         connectedPlayers.Remove(player.id);
+    }
+
+    //Dont Change or Override Players from List, READ ONLY!
+    //Server Call only!, else List is Empty
+    public Dictionary<ulong, AMSPlayer> GetConnectedPlayers()
+    {
+        return connectedPlayers;
     }
 }

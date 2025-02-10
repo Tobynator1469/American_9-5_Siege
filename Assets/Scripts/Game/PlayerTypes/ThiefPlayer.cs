@@ -34,6 +34,9 @@ public class ThiefPlayer : AMSPlayer
     {
         this.isInSafeZone.DeframeBool();
         this.hasWon.DeframeBool();
+        this.isGamePendingStart.DeframeBool();
+        this.hasRoundMoneyUpdated.DeframeBool();
+        this.hasChangedTeam.DeframeBool();
     }
 
     [ServerRpc]

@@ -197,9 +197,12 @@ MonoBehaviour:
   regenStaminaAmount: 10
   degenStaminaAmount: 20
   currentStamina: 0
-  raycastDistance: 0
+  currentTeam: 0
+  raycastDistance: 4
   offshoreMoney: 0
-  roundMoney: 0
+  playerHealth: 0
+  lastUpdateRoundMoney: 0
+  currentUpdateRoundMoney: 0
   itemHands:
   - {fileID: 4652050715284403280}
   - {fileID: 825863899564488230}

@@ -15,6 +15,7 @@ public struct AMSPlayerData : INetworkSerializable
     public char isInSafeZone;
     public char isGamePendingStart;
     public char hasRoundMoneyUpdated;
+    public char hasChangedTeam;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
@@ -25,6 +26,7 @@ public struct AMSPlayerData : INetworkSerializable
             serializer.SerializeValue(ref isInSafeZone);
             serializer.SerializeValue(ref isGamePendingStart);
             serializer.SerializeValue(ref hasRoundMoneyUpdated);
+            serializer.SerializeValue(ref hasChangedTeam);
         }
         else
         {
@@ -33,6 +35,7 @@ public struct AMSPlayerData : INetworkSerializable
             serializer.SerializeValue(ref isInSafeZone);
             serializer.SerializeValue(ref isGamePendingStart);
             serializer.SerializeValue(ref hasRoundMoneyUpdated);
+            serializer.SerializeValue(ref hasChangedTeam);
         }
     }
 }
@@ -43,24 +46,31 @@ public abstract class AMSPlayer : Player
     public delegate void OnGameResultState(Player _this, bool hasWon);
     public delegate void OnGamePendingState(AMSPlayer _this, bool isGamePendingStart);
     public delegate void OnGameChangedRoundMoney(AMSPlayer _this, int ChangedValue);
+    public delegate void OnChangedTeam(AMSPlayer _this, PlayerTeam team);
 
     protected OnChangedSafeZoneState onChangedSafeZoneState = null;
     protected OnGameResultState onGameResultState = null;
     protected OnGamePendingState onGamePendingState = null;
     protected OnGameChangedRoundMoney onGameChangedRoundMoney = null;
+    protected OnChangedTeam onChangedTeam = null;
     public void BindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedSafeZoneState += onChangedBombHoldState; }
     public void BindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState += onGameResultState; }
     public void BindOnGamePendingState(OnGamePendingState onGamePendingState) { this.onGamePendingState += onGamePendingState; }
-    public void BindOnGameAddedRoundMoney(OnGameChangedRoundMoney onGameAddedRoundMoney) { this.onGameChangedRoundMoney += onGameAddedRoundMoney; }
+    public void BindOnGameChangedRoundMoney(OnGameChangedRoundMoney onGameAddedRoundMoney) { this.onGameChangedRoundMoney += onGameAddedRoundMoney; }
+    public void BindOnChangedTeam(OnChangedTeam onChangedTeam) { this.onChangedTeam += onChangedTeam; }
     public void UnbindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedSafeZoneState -= onChangedBombHoldState; }
     public void UnbindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState -= onGameResultState; }
     public void UnbindOnGamePendingState(OnGamePendingState onGamePendingState) { this.onGamePendingState -= onGamePendingState; }
-    public void UnbindOnGameAddedRoundMoney(OnGameChangedRoundMoney onGameAddedRoundMoney) { this.onGameChangedRoundMoney -= onGameAddedRoundMoney; }
+    public void UnbindOnGameChangedRoundMoney(OnGameChangedRoundMoney onGameAddedRoundMoney) { this.onGameChangedRoundMoney -= onGameAddedRoundMoney; }
+    public void UnbindOnChangedTeam(OnChangedTeam onChangedTeam) { this.onChangedTeam -= onChangedTeam; }
+
+    public PlayerTeam currentTeam = PlayerTeam.None;
 
     [SerializeField]
     private float raycastDistance = 4.0f;
 
     public int offshoreMoney = 0;
+    public int playerHealth = 0;
 
     public int lastUpdateRoundMoney = 0;
     public int currentUpdateRoundMoney = 0;
@@ -69,6 +79,7 @@ public abstract class AMSPlayer : Player
     public PBool hasWon = new PBool(false);
     public PBool isGamePendingStart = new PBool(false);
     public PBool hasRoundMoneyUpdated = new PBool(false);
+    public PBool hasChangedTeam = new PBool(false);
 
     private bool canInteract = true;
 
@@ -182,6 +193,7 @@ public abstract class AMSPlayer : Player
         amsPlayerData.hasWon = (hasWon.GetCharState());
         amsPlayerData.isGamePendingStart = (isGamePendingStart.GetCharState());
         amsPlayerData.hasRoundMoneyUpdated = (hasRoundMoneyUpdated.GetCharState());
+        amsPlayerData.hasChangedTeam = (hasChangedTeam.GetCharState());
 
         return amsPlayerData;
     }
@@ -194,6 +206,7 @@ public abstract class AMSPlayer : Player
         PBool wonState = new PBool(psData.hasWon);
         PBool isGamePendingStart = new PBool(psData.isGamePendingStart);
         PBool hasRoundMoneyUpdated = new PBool(psData.hasRoundMoneyUpdated);
+        PBool hasChangedTeam = new PBool(psData.hasChangedTeam);
 
         switch (SafeZoneState.GetState())
         {
@@ -260,6 +273,23 @@ public abstract class AMSPlayer : Player
                     onGameChangedRoundMoney(this, this.currentUpdateRoundMoney - this.lastUpdateRoundMoney);
 
                 this.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.True);
+                break;
+        }
+
+        switch (hasChangedTeam.GetState())
+        {
+            case PBool.EBoolState.FalseThisFrame:
+                if (onChangedTeam != null)
+                    onChangedTeam(this, this.currentTeam);
+
+                this.hasChangedTeam = new PBool(PBool.EBoolState.False);
+                break;
+
+            case PBool.EBoolState.TrueThisFrame:
+                if (onChangedTeam != null)
+                    onChangedTeam(this, this.currentTeam);
+
+                this.hasChangedTeam = new PBool(PBool.EBoolState.True);
                 break;
         }
     }
