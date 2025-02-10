@@ -2,10 +2,24 @@ using Assets.Scripts;
 using Unity.Netcode;
 using UnityEngine;
 
-public abstract class Interactable : MonoBehaviour
+public abstract class Interactable : NetworkBehaviour
 {
-    protected bool isInteractable;
+    private bool isSpawned = false;
+    protected bool isInteractable = true;
 
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        isSpawned = true;
+
+        OnSpawned();
+    }
+    protected virtual void OnSpawned()
+    {
+        
+    }
 
     protected virtual void OnInteract(ulong id, AMServerManger serverManger)
     {
@@ -15,6 +29,9 @@ public abstract class Interactable : MonoBehaviour
     [ServerRpc]
     public void Interact_ServerRpc(ulong id)
     {
+        if (isInteractable == false || isSpawned == false)
+            return;
+
         var serverManager = GameObject.FindGameObjectWithTag("ServerManager");
 
         if (serverManager != null)
