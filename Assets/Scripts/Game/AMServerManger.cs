@@ -169,13 +169,17 @@ public class AMServerManger : ServerManager
 
         if(player && player.CanInteract())
         {
-            var transform = player.transform;
+            var transform_pos = player.transform.position;
+
+            transform_pos.y += defaultHeadHeight;
 
             Vector3 direction = player.transform.forward;
 
             direction.y = YDirection;
 
-            if (Physics.Raycast(transform.position, direction, out RaycastHit hitInfo, player.GetRaycastDist(), InteractableLayer))
+           // Debug.DrawRay(transform_pos, direction, Color.red, 2000.0f);
+
+            if (Physics.Raycast(transform_pos, direction, out RaycastHit hitInfo, player.GetRaycastDist(), InteractableLayer))
             {
                 if(hitInfo.transform.TryGetComponent<Interactable>(out Interactable interactable))
                 {

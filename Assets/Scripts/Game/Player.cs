@@ -748,6 +748,11 @@ public class Player : NetworkBehaviour
         }
     }
 
+    public GameObject GetPlayerHead()
+    {
+        return head;
+    }
+
     public string GetPlayerName()
     {
         return playerName;
