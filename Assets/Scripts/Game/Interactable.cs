@@ -7,7 +7,6 @@ public abstract class Interactable : NetworkBehaviour
     private bool isSpawned = false;
     protected bool isInteractable = true;
 
-
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
@@ -21,13 +20,13 @@ public abstract class Interactable : NetworkBehaviour
         
     }
 
-    protected virtual void OnInteract(ulong id, AMServerManger serverManger)
+    protected virtual void OnInteract(ulong id, AMServerManger serverManger, Vector3 relativeDirection)
     {
         Debug.Log(id + " Interacted with");
     }
 
     [ServerRpc]
-    public void Interact_ServerRpc(ulong id)
+    public void Interact_ServerRpc(ulong id, Vector3 relativeDirection)
     {
         if (isInteractable == false || isSpawned == false)
             return;
@@ -35,7 +34,7 @@ public abstract class Interactable : NetworkBehaviour
         var serverManager = GameObject.FindGameObjectWithTag("ServerManager");
 
         if (serverManager != null)
-            OnInteract(id, serverManager.GetComponent<AMServerManger>());
+            OnInteract(id, serverManager.GetComponent<AMServerManger>(), relativeDirection);
         else
             DebugClass.Error("Failed To Find ServerManager through Tag!");
     }

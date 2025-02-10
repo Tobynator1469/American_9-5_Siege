@@ -207,7 +207,7 @@ public class AMServerManger : ServerManager
             {
                 if(hitInfo.transform.TryGetComponent<Interactable>(out Interactable interactable))
                 {
-                    interactable.Interact_ServerRpc(ID);
+                    interactable.Interact_ServerRpc(ID, -direction);
                 }
             }
         }
