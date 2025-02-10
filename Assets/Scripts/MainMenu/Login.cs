@@ -120,9 +120,14 @@ public class Login : MonoBehaviour
     private void OnEndEdit_SQL(string editedText)
     {
         if (string.IsNullOrEmpty(editedText))
-            Login.host = "http://192.168.8.200";
+            Login.host_ = "http://192.168.8.200";
         else
-            Login.host = $"http://{editedText}";
+        {
+            if(!editedText.Equals("localhost"))
+                Login.host_ = $"http://{editedText}";
+            else
+                Login.host_ = $"{editedText}";
+        }
     }
 
     private IEnumerator<UnityWebRequestAsyncOperation> SendLoginRequest(string username, string password)
