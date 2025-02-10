@@ -48,9 +48,8 @@ public abstract class AMSPlayer : Player
     public void UnbindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState -= onGameResultState; }
     public void UnbindOnGamePendingState(OnGamePendingState onGamePendingState) { this.onGamePendingState -= onGamePendingState; }
 
-    public GameObject rayCastObj = null;
-
-    public float raycastDistance = 4.0f;
+    [SerializeField]
+    private float raycastDistance = 4.0f;
 
     public int offshoreMoney = 0;
     public int roundMoney = 0;
@@ -212,8 +211,19 @@ public abstract class AMSPlayer : Player
         }
     }
 
+    [ServerRpc]
+    public void SetRaycastDist_ServerRpc(float Dist)
+    {
+        raycastDistance = Dist;
+    }
+
     public bool CanInteract()
     {
         return canInteract;
+    }
+
+    public float GetRaycastDist()
+    {
+        return raycastDistance;
     }
 }

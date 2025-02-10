@@ -27,7 +27,7 @@ public class AMServerManger : ServerManager
     Dictionary<ulong,  PlayerTeam> teams = new Dictionary<ulong, PlayerTeam>();
     Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
 
-    private float defaultRaycastDistance = 2.0f;
+    private float defaultRaycastDistance = 4.0f;
 
     private float timeTillStart = 4.0f;
     private float timeTillStartCur = 0.0f;
@@ -91,7 +91,7 @@ public class AMServerManger : ServerManager
     }
     private void OnInitializeAMS_PlayerDefaults(AMSPlayer player)
     {
-        player.raycastDistance = defaultRaycastDistance;
+        player.SetRaycastDist_ServerRpc(defaultRaycastDistance);
     }
 
     [ServerRpc]
@@ -175,9 +175,7 @@ public class AMServerManger : ServerManager
 
             direction.y = YDirection;
 
-            player.rayCastObj.transform.position = transform.position + (direction * player.raycastDistance);
-
-            if (Physics.Raycast(transform.position, direction, out RaycastHit hitInfo, player.raycastDistance, InteractableLayer))
+            if (Physics.Raycast(transform.position, direction, out RaycastHit hitInfo, player.GetRaycastDist(), InteractableLayer))
             {
                 if(hitInfo.transform.TryGetComponent<Interactable>(out Interactable interactable))
                 {
