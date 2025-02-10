@@ -1,10 +1,12 @@
 using Assets.Scripts;
+using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
 public enum PlayerTeam
 {
+    None,
     Thief,
     Defender,
     Spectator
@@ -24,8 +26,9 @@ public class AMServerManger : ServerManager
     [SerializeField]
     private GameObject SpectatorSpawnLocation = null;
 
-    Dictionary<ulong,  PlayerTeam> teams = new Dictionary<ulong, PlayerTeam>();
     Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
+    Dictionary<PlayerTeam, List<ulong>> teams = new Dictionary<PlayerTeam, List<ulong>>();
+    Dictionary<ulong, PlayerTeam> players = new Dictionary<ulong, PlayerTeam>();
 
     private float defaultRaycastDistance = 4.0f;
 
@@ -39,6 +42,27 @@ public class AMServerManger : ServerManager
 
     protected override void OnStartServer()
     {
+        for (int i = 0; i < Enum.GetValues(typeof(PlayerTeam)).Length; i++)
+        {
+            PlayerTeam team_ = (PlayerTeam)i;
+
+            switch (team_)
+            {
+                case PlayerTeam.Thief:
+                    teams.Add(PlayerTeam.Thief, new List<ulong>());
+                    break;
+                case PlayerTeam.Defender:
+                    teams.Add(PlayerTeam.Defender, new List<ulong>());
+                    break;
+                case PlayerTeam.Spectator:
+                    teams.Add(PlayerTeam.Spectator, new List<ulong>());
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
         InteractableLayer = 1 << LayerMask.NameToLayer("Interactable");
     }
 
@@ -155,7 +179,7 @@ public class AMServerManger : ServerManager
     [ServerRpc]
     private void OnGameStarted_ServerRpc()
     {
-        foreach (var item in teams)
+        foreach (var item in players)
         {
             SpawnPlayer_ServerRpc(item.Value, item.Key);
         }
@@ -200,23 +224,70 @@ public class AMServerManger : ServerManager
             return;
         }
 
-        if(teams.ContainsKey(pID))
+        SwitchPlayerToTeam(ID, teamSelected);
+    }
+
+    [ServerRpc]
+    public void PlayerRoundMoneyHasUpdated_ServerRpc(ulong pID)
+    {
+        if(teams.TryGetValue(FindPlayerTeam(pID), out List<ulong> players))
         {
-            teams[pID] = teamSelected;
-        }
-        else
-        {
-            teams.Add(pID, teamSelected);
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = FindConnectedPlayer(players[i]);
+
+                if(player)
+                {
+                    player.SetRoundMoney_Rpc(player.currentUpdateRoundMoney, RpcTarget.Single(player.id, RpcTargetUse.Temp));
+                }
+            }
         }
     }
 
-    protected AMSPlayer FindConnectedPlayer(ulong ID)
+    protected AMSPlayer FindConnectedPlayer(ulong pID)
     {
-        if(connectedPlayers.TryGetValue(ID, out var player))
+        if(connectedPlayers.TryGetValue(pID, out var player))
         { 
             return player;
         }
 
         return null;
+    }
+
+    protected void SwitchPlayerToTeam(ulong pID, PlayerTeam team)
+    {
+        var curTeam = FindPlayerTeam(pID);
+
+        if (curTeam != PlayerTeam.None)
+        {
+            players.Remove(pID);
+            teams[curTeam].Remove(pID);
+        }
+
+        if(team != PlayerTeam.None)
+        {
+            players.Add(pID, team);
+            teams[team].Add(pID);
+        }
+    }
+
+    protected PlayerTeam FindPlayerTeam(ulong pID)
+    {
+        if (players.TryGetValue(pID, out PlayerTeam team))
+            return team;
+
+        return PlayerTeam.None;
+    }
+
+    protected override void OnPlayerJoined(Player player)
+    {
+        //connectedPlayers.Add()
+    }
+
+    protected override void OnPlayerLeft(Player player)
+    {
+        SwitchPlayerToTeam(player.id, PlayerTeam.None);
+
+        connectedPlayers.Remove(player.id);
     }
 }

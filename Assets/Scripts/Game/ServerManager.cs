@@ -150,6 +150,16 @@ public class ServerManager : NetworkBehaviour
 
     }
 
+    protected virtual void OnPlayerJoined(Player player)
+    {
+
+    }
+
+    protected virtual void OnPlayerLeft(Player player)
+    {
+
+    }
+
     public void HostServer()
     {
         SetConnectionData();
@@ -540,6 +550,9 @@ public class ServerManager : NetworkBehaviour
 
     public void AddPlayer(Player player)
     {
+        if (IsServer)
+            OnPlayerJoined(player);
+
         playerList.Add(player);
 
         playerIDDictionary = GetPlayerDictionary();
@@ -555,6 +568,9 @@ public class ServerManager : NetworkBehaviour
 
     public void RemovePlayer(Player player)
     {
+        if(IsServer)
+            OnPlayerLeft(player);
+
         playerList.Remove(player);
 
         playerIDDictionary = GetPlayerDictionary();

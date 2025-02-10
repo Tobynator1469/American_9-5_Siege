@@ -1,10 +1,12 @@
 using Assets.Scripts;
+using JetBrains.Annotations;
 using System;
 using System.Data;
 using System.Diagnostics;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.LowLevel;
+using static AMSPlayer;
 public struct AMSPlayerData : INetworkSerializable
 {
     public PlayerUpdateData baseData;
@@ -12,6 +14,7 @@ public struct AMSPlayerData : INetworkSerializable
     public char hasWon;
     public char isInSafeZone;
     public char isGamePendingStart;
+    public char hasRoundMoneyUpdated;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
@@ -21,6 +24,7 @@ public struct AMSPlayerData : INetworkSerializable
             serializer.SerializeValue(ref hasWon);
             serializer.SerializeValue(ref isInSafeZone);
             serializer.SerializeValue(ref isGamePendingStart);
+            serializer.SerializeValue(ref hasRoundMoneyUpdated);
         }
         else
         {
@@ -28,6 +32,7 @@ public struct AMSPlayerData : INetworkSerializable
             serializer.SerializeValue(ref hasWon);
             serializer.SerializeValue(ref isInSafeZone);
             serializer.SerializeValue(ref isGamePendingStart);
+            serializer.SerializeValue(ref hasRoundMoneyUpdated);
         }
     }
 }
@@ -37,26 +42,33 @@ public abstract class AMSPlayer : Player
     public delegate void OnChangedSafeZoneState(Player _this, bool isInSafeZone);
     public delegate void OnGameResultState(Player _this, bool hasWon);
     public delegate void OnGamePendingState(AMSPlayer _this, bool isGamePendingStart);
+    public delegate void OnGameChangedRoundMoney(AMSPlayer _this, int ChangedValue);
 
     protected OnChangedSafeZoneState onChangedSafeZoneState = null;
     protected OnGameResultState onGameResultState = null;
     protected OnGamePendingState onGamePendingState = null;
+    protected OnGameChangedRoundMoney onGameChangedRoundMoney = null;
     public void BindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedSafeZoneState += onChangedBombHoldState; }
     public void BindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState += onGameResultState; }
     public void BindOnGamePendingState(OnGamePendingState onGamePendingState) { this.onGamePendingState += onGamePendingState; }
+    public void BindOnGameAddedRoundMoney(OnGameChangedRoundMoney onGameAddedRoundMoney) { this.onGameChangedRoundMoney += onGameAddedRoundMoney; }
     public void UnbindOnChangedSafeZoneState(OnChangedSafeZoneState onChangedBombHoldState) { this.onChangedSafeZoneState -= onChangedBombHoldState; }
     public void UnbindOnGameResultState(OnGameResultState onGameResultState) { this.onGameResultState -= onGameResultState; }
     public void UnbindOnGamePendingState(OnGamePendingState onGamePendingState) { this.onGamePendingState -= onGamePendingState; }
+    public void UnbindOnGameAddedRoundMoney(OnGameChangedRoundMoney onGameAddedRoundMoney) { this.onGameChangedRoundMoney -= onGameAddedRoundMoney; }
 
     [SerializeField]
     private float raycastDistance = 4.0f;
 
     public int offshoreMoney = 0;
-    public int roundMoney = 0;
+
+    public int lastUpdateRoundMoney = 0;
+    public int currentUpdateRoundMoney = 0;
 
     public PBool isInSafeZone = new PBool(false);
     public PBool hasWon = new PBool(false);
     public PBool isGamePendingStart = new PBool(false);
+    public PBool hasRoundMoneyUpdated = new PBool(false);
 
     private bool canInteract = true;
 
@@ -85,6 +97,28 @@ public abstract class AMSPlayer : Player
             this.isGamePendingStart = new PBool(PBool.EBoolState.TrueThisFrame);
         else
             this.isGamePendingStart = new PBool(PBool.EBoolState.FalseThisFrame);
+    }
+
+    [ServerRpc]
+    public void SetRaycastDist_ServerRpc(float Dist)
+    {
+        raycastDistance = Dist;
+    }
+
+    [ServerRpc]
+    public void SetRoundMoney_ServerRpc(int money)
+    {
+        currentUpdateRoundMoney = money;
+
+        this.serverManager.GetComponent<AMServerManger>().PlayerRoundMoneyHasUpdated_ServerRpc(id);
+
+        this.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.TrueThisFrame);
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    public void SetRoundMoney_Rpc(int money, RpcParams rpcParams)
+    {
+        currentUpdateRoundMoney = money;
     }
 
     [Rpc(SendTo.Server)]
@@ -128,7 +162,7 @@ public abstract class AMSPlayer : Player
     [Rpc(SendTo.Server)]
     public void OnSwitchTeams_Rpc(PlayerTeam team, RpcParams rpcParams = default)
     {
-        if (!CheckAuthority(rpcParams))
+        if (!CheckAuthority(rpcParams) || !IsValidTeam(team))
             return;
 
         DebugClass.Log("Switching Teams!");
@@ -146,7 +180,8 @@ public abstract class AMSPlayer : Player
 
         amsPlayerData.isInSafeZone = (isInSafeZone.GetCharState());
         amsPlayerData.hasWon = (hasWon.GetCharState());
-        amsPlayerData.isGamePendingStart = (isGamePendingStart.GetCharState()); ;
+        amsPlayerData.isGamePendingStart = (isGamePendingStart.GetCharState());
+        amsPlayerData.hasRoundMoneyUpdated = (hasRoundMoneyUpdated.GetCharState());
 
         return amsPlayerData;
     }
@@ -158,6 +193,7 @@ public abstract class AMSPlayer : Player
         PBool SafeZoneState = new PBool(psData.isInSafeZone);
         PBool wonState = new PBool(psData.hasWon);
         PBool isGamePendingStart = new PBool(psData.isGamePendingStart);
+        PBool hasRoundMoneyUpdated = new PBool(psData.hasRoundMoneyUpdated);
 
         switch (SafeZoneState.GetState())
         {
@@ -165,14 +201,14 @@ public abstract class AMSPlayer : Player
                 if (onChangedSafeZoneState != null)
                     onChangedSafeZoneState(this, false);
 
-                isInSafeZone = new PBool(PBool.EBoolState.False);
+                this.isInSafeZone = new PBool(PBool.EBoolState.False);
                 break;
 
             case PBool.EBoolState.TrueThisFrame:
                 if (onChangedSafeZoneState != null)
                     onChangedSafeZoneState(this, true);
 
-                isInSafeZone = new PBool(PBool.EBoolState.True);
+                this.isInSafeZone = new PBool(PBool.EBoolState.True);
                 break;
         }
 
@@ -182,14 +218,14 @@ public abstract class AMSPlayer : Player
                 if (onGameResultState != null)
                     onGameResultState(this, false);
 
-                wonState = new PBool(PBool.EBoolState.False);
+                this.hasWon = new PBool(PBool.EBoolState.False);
                 break;
 
             case PBool.EBoolState.TrueThisFrame:
                 if (onGameResultState != null)
                     onGameResultState(this, true);
 
-                wonState = new PBool(PBool.EBoolState.True);
+                this.hasWon = new PBool(PBool.EBoolState.True);
                 break;
         }
 
@@ -199,22 +235,38 @@ public abstract class AMSPlayer : Player
                 if (onGamePendingState != null)
                     onGamePendingState(this, false);
 
-                isGamePendingStart = new PBool(PBool.EBoolState.False);
+                this.isGamePendingStart = new PBool(PBool.EBoolState.False);
                 break;
 
             case PBool.EBoolState.TrueThisFrame:
                 if (onGamePendingState != null)
                     onGamePendingState(this, true);
 
-                isGamePendingStart = new PBool(PBool.EBoolState.True);
+                this.isGamePendingStart = new PBool(PBool.EBoolState.True);
+                break;
+        }
+
+        switch (hasRoundMoneyUpdated.GetState())
+        {
+            case PBool.EBoolState.FalseThisFrame:
+                if (onGameChangedRoundMoney != null)
+                    onGameChangedRoundMoney(this, this.currentUpdateRoundMoney - this.lastUpdateRoundMoney);
+
+                this.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.False);
+                break;
+
+            case PBool.EBoolState.TrueThisFrame:
+                if (onGameChangedRoundMoney != null)
+                    onGameChangedRoundMoney(this, this.currentUpdateRoundMoney - this.lastUpdateRoundMoney);
+
+                this.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.True);
                 break;
         }
     }
 
-    [ServerRpc]
-    public void SetRaycastDist_ServerRpc(float Dist)
+    protected bool IsValidTeam(PlayerTeam team)
     {
-        raycastDistance = Dist;
+        return (team != PlayerTeam.None);
     }
 
     public bool CanInteract()
