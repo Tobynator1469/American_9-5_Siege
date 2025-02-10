@@ -46,7 +46,23 @@ public class DoorPickInteractable : Interactable
     [ClientRpc]
     private void OpenDoor_ClientRpc(DoorState doorState)
     {
-
+        switch (doorState)
+        {
+            case DoorState.OpenRight:
+                animator.SetTrigger("OpenRightT");
+                break;
+            case DoorState.OpenLeft:
+                animator.SetTrigger("OpenLeftT");
+                break;
+            case DoorState.CloseRight:
+                animator.SetTrigger("CloseRightT");
+                break;
+            case DoorState.CloseLeft:
+                animator.SetTrigger("CloseLeftT");
+                break;
+            default:
+                break;
+        }
     }
 
     private bool IsRaycastFromFront(Vector3 relativeDirection)
