@@ -22,6 +22,8 @@ public class Login : MonoBehaviour
     private TMPro.TMP_InputField passwordField = null;
     [SerializeField]
     private TMPro.TMP_InputField IPField = null;
+    [SerializeField]
+    private TMPro.TMP_InputField SQL_IPField = null;
 
     //false  = done, true = working
     private bool loginState = false; 
@@ -32,6 +34,7 @@ public class Login : MonoBehaviour
         loginButton.onClick.AddListener(OnClickLogin);
         registerButton.onClick.AddListener(OnClickRegister);
         IPField.onEndEdit.AddListener(OnEndEdit);
+        SQL_IPField.onEndEdit.AddListener(OnEndEdit_SQL);
     }
 
     private void OnDestroy()
@@ -39,6 +42,7 @@ public class Login : MonoBehaviour
         loginButton.onClick.RemoveAllListeners();
         registerButton.onClick.RemoveAllListeners();
         IPField.onEndEdit.RemoveAllListeners();
+        SQL_IPField.onEndEdit.RemoveAllListeners();
     }
 
     void OnSuccessFullLogin(Dictionary<string, string> jsonBody)
@@ -111,6 +115,14 @@ public class Login : MonoBehaviour
             Login.host = "192.168.8.200";
         else
             Login.host = $"{editedText}";
+    }
+
+    private void OnEndEdit_SQL(string editedText)
+    {
+        if (string.IsNullOrEmpty(editedText))
+            Login.host = "http://192.168.8.200";
+        else
+            Login.host = $"http://{editedText}";
     }
 
     private IEnumerator<UnityWebRequestAsyncOperation> SendLoginRequest(string username, string password)
