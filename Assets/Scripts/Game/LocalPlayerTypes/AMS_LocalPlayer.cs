@@ -17,6 +17,8 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.BindOnChangedTeam(OnTeamChanged);
 
         amsPlayer.OnSwitchTeams_Rpc(PlayerTeam.Thief);
+
+        GetServerManager<AMServerManger>().GetServerPlayerDataRpc();
     }
 
     protected override void OnDestroyed()

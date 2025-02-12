@@ -121,9 +121,7 @@ public abstract class AMSPlayer : Player
     {
         currentUpdateRoundMoney = money;
 
-        this.serverManager.GetComponent<AMServerManger>().PlayerRoundMoneyHasUpdated_ServerRpc(id);
-
-        this.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.TrueThisFrame);
+        this.serverManager.GetComponent<AMServerManger>().PlayerRoundMoneyHasUpdated_ServerRpc(id, money);
     }
 
     [Rpc(SendTo.SpecifiedInParams)]

@@ -93,8 +93,6 @@ public class AMServerManger : ServerManager
         if(playerInstance)
         {
             playerInstance.NetworkObject.Despawn();
-
-            RemovePlayer(playerInstance);
         }
     }
     private void OnInitializeAMS_PlayerDefaults(AMSPlayer player)
@@ -160,6 +158,8 @@ public class AMServerManger : ServerManager
         ShareNewNameClientRpc(netObjComp.NetworkObjectId, playerName);
 
         ShareNewPlayerTeam_ClientRpc(netObjComp.NetworkObjectId, team);
+
+        SwitchPlayerToTeam_ClientRpc(id, team);
     }
 
     [ServerRpc]
@@ -216,7 +216,7 @@ public class AMServerManger : ServerManager
     }
 
     [ServerRpc]
-    public void PlayerRoundMoneyHasUpdated_ServerRpc(ulong pID)
+    public void PlayerRoundMoneyHasUpdated_ServerRpc(ulong pID, int newMoney)
     {
         if(teams.TryGetValue(FindPlayerTeam(pID), out List<ulong> players))
         {
@@ -226,7 +226,8 @@ public class AMServerManger : ServerManager
 
                 if(player)
                 {
-                    player.SetRoundMoney_Rpc(player.currentUpdateRoundMoney, RpcTarget.Single(player.id, RpcTargetUse.Temp));
+                    player.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.TrueThisFrame);
+                    player.SetRoundMoney_Rpc(newMoney, RpcTarget.Single(player.id, RpcTargetUse.Temp));
                 }
             }
         }
@@ -299,9 +300,9 @@ public class AMServerManger : ServerManager
 
     protected override void OnPlayerLeft(Player player)
     {
-        SwitchPlayerToTeam_ClientRpc(player.id, PlayerTeam.None);
-
-        connectedPlayers.Remove(player.id);
+        //SwitchPlayerToTeam_ClientRpc(player.id, PlayerTeam.None);
+        if(!FindPlayer(player.id))
+            connectedPlayers.Remove(player.id);
     }
 
     //Dont Change or Override Players from List, READ ONLY!
