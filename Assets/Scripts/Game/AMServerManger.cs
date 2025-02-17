@@ -23,6 +23,9 @@ public class AMServerManger : ServerManager
     [SerializeField]
     private GameObject SpectatorPrefab = null;
 
+    [SerializeField, Tooltip("Set the Specific Game State for the Scene!")]
+    private GameObject GameStatePrefab = null;
+
     [SerializeField]
     private GameObject SpectatorSpawnLocation = null;
 
@@ -45,9 +48,29 @@ public class AMServerManger : ServerManager
     private bool startGame = false;
     private bool hasGameStarted = false;
 
+    public delegate void OnAMServerManagerDestroyed(AMServerManger sv);
+
+    private OnAMServerManagerDestroyed onAMServerManagerDestroyed = null;
+
+    public void BindOnAMServerManagerDestroyed(OnAMServerManagerDestroyed onAMServerManagerDestroyed) 
+    {
+        this.onAMServerManagerDestroyed += onAMServerManagerDestroyed;
+    }
+
+    public void UnbindOnAMServerManagerDestroyed(OnAMServerManagerDestroyed onAMServerManagerDestroyed)
+    {
+        this.onAMServerManagerDestroyed -= onAMServerManagerDestroyed;
+    }
+
     protected override void OnStartServer()
     {
         InteractableLayer = 1 << LayerMask.NameToLayer("Interactable");
+    }
+
+    protected override void OnDestroyServer()
+    {
+        if (onAMServerManagerDestroyed != null)
+            onAMServerManagerDestroyed(this);
     }
 
     [ServerRpc]
@@ -171,6 +194,29 @@ public class AMServerManger : ServerManager
         {
             SpawnPlayer_ServerRpc(item.Value, item.Key);
         }
+    }
+
+    private void SpawnGameState()
+    {
+        GameObject instance = Instantiate(GameStatePrefab, Vector3.zero, Quaternion.Euler(Vector3.zero));
+
+        var gameStateObj = instance.GetComponent<AMS_GameState>();
+
+        if (gameStateObj)
+        {
+            gameStateObj.BindOnGameStateDestroyed(OnGameStateDestroyed);
+        }
+        else
+        {
+            Destroy(instance);
+
+            DebugClass.Error("Prefab was not an GameState!");
+        }
+    }
+
+    private void OnGameStateDestroyed(AMS_GameState gameState)
+    {
+
     }
 
 
@@ -310,5 +356,10 @@ public class AMServerManger : ServerManager
     public Dictionary<ulong, AMSPlayer> GetConnectedPlayers()
     {
         return connectedPlayers;
+    }
+
+    public Dictionary<PlayerTeam, List<ulong>> GetTeamPlayerList()
+    {
+        return teams;
     }
 }
