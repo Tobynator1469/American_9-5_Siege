@@ -4,97 +4,97 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-public enum ItemTypes
-{
-    Weapon,
-    LowValue,
-    MediumValue,
-    HighValue
-}
-
-
 
 public class ItemSpawn : NetworkBehaviour
 {
     [SerializeField]
-    private GameObject[] possibleSpawns;
-    /*
-    [SerializeField]
-    private Dictionary<ItemTypes, List<GameObject>> items = new()
-    { { ItemTypes.Weapons, new List<GameObject>() }, { ItemTypes.LowQuality, new List<GameObject>() },
-      { ItemTypes.MediumQuality, new List<GameObject>() }, { ItemTypes.HighQuality, new List<GameObject>() }
-    };*/
+    private List<GameObject> possibleSpawns = new List<GameObject>();
 
-    public GameObject[] Weapons;
-    public GameObject[] LowValueStuff;
-    public GameObject[] MediumValueStuff;
-    public GameObject[] HighValueStuff;
+    public List<GameObject> Weapons = new List<GameObject>();
+    public List<GameObject> LowValueStuff = new List<GameObject>();
+    public List<GameObject> MediumValueStuff = new List<GameObject>();
+    public List<GameObject> HighValueStuff = new List<GameObject>();
 
-    private GameObject[] SpawnedStuff;
+    private List<GameObject> selectedList;
+    private List<GameObject> spawnedStuff = new List<GameObject>();
 
     [SerializeField]
-    private int WeaponLimit = 1;
+    private int WPLimit = 1;
+
+    [SerializeField]
+    private int LVLimit = 1;
+
+    [SerializeField]
+    private int MVLimit = 1;
+
     void Start()
     {
-        
+
     }
 
     public void DecideSpawned(GameObject listObj)
     {
-
         Debug.Log($"Der Spawn {listObj.name} hat den Tag {listObj.tag}.");
 
-        // Wähle zufällig eines der drei Arrays
-        GameObject[][] arrays = { Weapons, LowValueStuff, MediumValueStuff };
-        GameObject[] selectedArray = arrays[UnityEngine.Random.Range(0, arrays.Length)];
+        List<List<GameObject>> lists = new List<List<GameObject>> { Weapons, LowValueStuff, MediumValueStuff };
 
-        if (selectedArray.Length == 0)
+        if (listObj.name.Contains("HV"))
         {
-            Debug.LogWarning("Das gewählte Array ist leer!");
+            selectedList = HighValueStuff;
+        }
+        else
+        {
+            selectedList = lists[UnityEngine.Random.Range(0, lists.Count)];
+        }
+
+        if (selectedList.Count == 0)
+        {
+            Debug.LogWarning("Die gewählte Liste ist leer!");
             return;
         }
 
-        GameObject selectedObject = selectedArray[UnityEngine.Random.Range(0, selectedArray.Length)];
 
-        Instantiate(selectedObject, listObj.transform.position, Quaternion.identity);
+
+        GameObject selectedObject = selectedList[UnityEngine.Random.Range(0, selectedList.Count)];
+        GameObject spawnedObject = Instantiate(selectedObject, listObj.transform.position, Quaternion.identity);
+        spawnedStuff.Add(spawnedObject);
 
     }
-
-    /*
-     void SpawnRandomObject()
-    {
-        // Wähle zufällig eines der drei Arrays
-        GameObject[][] arrays = { array1, array2, array3 };
-        GameObject[] selectedArray = arrays[Random.Range(0, arrays.Length)];
-        
-        if (selectedArray.Length == 0)
-        {
-            Debug.LogWarning("Das gewählte Array ist leer!");
-            return;
-        }
-        
-        // Wähle zufällig ein GameObject aus dem gewählten Array
-        GameObject selectedObject = selectedArray[Random.Range(0, selectedArray.Length)];
-        
-        // Instanziiere das GameObject an der Position des SPAWNPOINTs
-        Instantiate(selectedObject, SPAWNPOINT.position, Quaternion.identity);
-    }
-     */
 
     public void SpawnItems()
     {
+        
+        DestroyAllSpawned();
 
-        foreach (GameObject spawn in possibleSpawns)
+        possibleSpawns = FindAllItemSpawns();
+
+        if (possibleSpawns.Count > 0)
         {
-            if (spawn.tag != "HVSpawn")
+            foreach (GameObject spawn in possibleSpawns)
             {
+                
+
                 DecideSpawned(spawn);
             }
-            else
+        }
+    }
+
+    public void DestroyAllSpawned()
+    {
+        foreach (GameObject obj in spawnedStuff)
+        {
+            if (obj != null)
             {
-                Debug.Log($" {spawn.name} is gud jit");
+                Destroy(obj);
             }
         }
+        spawnedStuff.Clear();
+    }
+
+    private List<GameObject> FindAllItemSpawns()
+    {
+        
+        return new List<GameObject>(GameObject.FindGameObjectsWithTag("ItemSpawn"));
 
     }
 

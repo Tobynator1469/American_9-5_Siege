@@ -4488,7 +4488,7 @@ GameObject:
   - component: {fileID: 1117921647}
   m_Layer: 0
   m_Name: TestSpawn2
-  m_TagString: Untagged
+  m_TagString: ItemSpawn
   m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5531,7 +5531,7 @@ GameObject:
   - component: {fileID: 1325709428}
   m_Layer: 0
   m_Name: TestSpawn1
-  m_TagString: Untagged
+  m_TagString: ItemSpawn
   m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5892,7 +5892,7 @@ GameObject:
   - component: {fileID: 1466464676}
   m_Layer: 0
   m_Name: TestHVSpawn3
-  m_TagString: HVSpawn
+  m_TagString: ItemSpawn
   m_Icon: {fileID: 2974397684917235467, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6323,6 +6323,7 @@ MonoBehaviour:
   ThiefPrefab: {fileID: 690414560116195956, guid: 42d0bab177be09f468dd61006c179e87, type: 3}
   DefenderPrefab: {fileID: 0}
   SpectatorPrefab: {fileID: 0}
+  GameStatePrefab: {fileID: 0}
   SpectatorSpawnLocation: {fileID: 0}
 --- !u!1001 &1586543932
 PrefabInstance:
@@ -7338,7 +7339,7 @@ GameObject:
   - component: {fileID: 1908954334}
   m_Layer: 0
   m_Name: TestSpawn3
-  m_TagString: Untagged
+  m_TagString: ItemSpawn
   m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -7492,11 +7493,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  possibleSpawns:
-  - {fileID: 1325709426}
-  - {fileID: 1117921645}
-  - {fileID: 1908954332}
-  - {fileID: 1466464674}
+  possibleSpawns: []
   Weapons:
   - {fileID: 1258189359608040335, guid: 9b38a2f61c8379a40929f581cb657e07, type: 3}
   LowValueStuff:
