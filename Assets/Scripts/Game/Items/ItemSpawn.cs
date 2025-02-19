@@ -32,11 +32,28 @@ public class ItemSpawn : NetworkBehaviour
 
     }
 
+    public void pickList()
+    {
+        List<List<GameObject>> picked = new List<List<GameObject>> { Weapons, LowValueStuff, MediumValueStuff };
+
+    }
+
     public void DecideSpawned(GameObject listObj)
     {
         Debug.Log($"Der Spawn {listObj.name} hat den Tag {listObj.tag}.");
 
         List<List<GameObject>> lists = new List<List<GameObject>> { Weapons, LowValueStuff, MediumValueStuff };
+
+        /*
+         E Z D  S A N
+         V F S  V F S
+         S A N  E Z D
+         
+         
+         */
+
+
+
 
         if (listObj.name.Contains("HV"))
         {
@@ -58,6 +75,8 @@ public class ItemSpawn : NetworkBehaviour
         GameObject selectedObject = selectedList[UnityEngine.Random.Range(0, selectedList.Count)];
         GameObject spawnedObject = Instantiate(selectedObject, listObj.transform.position, Quaternion.identity);
         spawnedStuff.Add(spawnedObject);
+        
+
 
     }
 

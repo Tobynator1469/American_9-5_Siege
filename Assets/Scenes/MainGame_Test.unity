@@ -7502,7 +7502,9 @@ MonoBehaviour:
   - {fileID: 4018617646334350642, guid: 95429d0108fd91644b709e5cabfe9d41, type: 3}
   HighValueStuff:
   - {fileID: 3350227288965034667, guid: c86b69e25cbe71641a33d8eebb66a170, type: 3}
-  WeaponLimit: 1
+  WPLimit: 1
+  LVLimit: 1
+  MVLimit: 1
 --- !u!4 &1950937644
 Transform:
   m_ObjectHideFlags: 0
@@ -8216,8 +8218,8 @@ Transform:
   m_GameObject: {fileID: 2068915902}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1, z: 0}
-  m_LocalScale: {x: 187.85, y: 1, z: 187.85}
+  m_LocalPosition: {x: 20, y: -1, z: 20}
+  m_LocalScale: {x: 300, y: 1, z: 300}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
