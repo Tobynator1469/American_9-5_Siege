@@ -6150,8 +6150,9 @@ MonoBehaviour:
   StartGameBtn: {fileID: 1177681303}
   DEBUG_KillAllPlayer: 0
   ThiefPrefab: {fileID: 690414560116195956, guid: 42d0bab177be09f468dd61006c179e87, type: 3}
-  DefenderPrefab: {fileID: 0}
+  DefenderPrefab: {fileID: 690414560116195956, guid: 0af0e8e1f1c37354f9267a2b707b60ec, type: 3}
   SpectatorPrefab: {fileID: 0}
+  GameStatePrefab: {fileID: 8391327180572937091, guid: c6756b88ed067ce46aabc1128c926fce, type: 3}
   SpectatorSpawnLocation: {fileID: 0}
 --- !u!1001 &1586543932
 PrefabInstance:

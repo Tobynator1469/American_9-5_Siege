@@ -178,6 +178,9 @@ public abstract class AMSPlayer : Player
 
         var srvManager = serverManager.GetComponent<AMServerManger>();
 
+        if (srvManager.HasGameStarted())
+            return;
+
         srvManager.OnPlayerSwitchTeams_ServerRpc(id, team);
     }
 

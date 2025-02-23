@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -209,7 +210,11 @@ public class AMS_GameState : NetworkBehaviour
                 if(timeTillPostEnd_EndCur >= timeTillPostEnd_End)
                 {
                     if(OnNextRound())
+                    {
                         gameState = EGameState.RoundStart;
+
+                        SetPlayersMovementState_ServerRpc(false);
+                    }
                     else
                     {
                         gameState = EGameState.None;
@@ -235,9 +240,9 @@ public class AMS_GameState : NetworkBehaviour
         if (onGameRoundStarted != null)
             onGameRoundStarted(this);
 
-        m_cachedTeams = amsServerManger.GetTeamPlayerList();
+        m_cachedTeams = new Dictionary<PlayerTeam, List<ulong>>(amsServerManger.GetTeamPlayerList());
 
-        SetPlayersMovementState_ServerRpc(false);
+        SetPlayersMovementState_ServerRpc(true);
     }
 
     private void OnRoundEnd()
@@ -259,6 +264,9 @@ public class AMS_GameState : NetworkBehaviour
         ResetTimer();
 
         gameState = EGameState.RoundStart;
+
+        if(IsHost)
+            SwitchPlayerTeams_ServerRpc();
 
         return true;
     }
@@ -286,9 +294,31 @@ public class AMS_GameState : NetworkBehaviour
         }
     }
 
-    private void SwitchPlayerTeams()
+    [ServerRpc]
+    private void SwitchPlayerTeams_ServerRpc()
     {
+        var teams = m_cachedTeams;
 
+        foreach (var team in teams)
+        {
+            switch (team.Key)
+            {
+                case PlayerTeam.Thief:
+                    for (int i = 0; i < team.Value.Count; i++)
+                    {
+                        amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Defender, team.Value[i]);
+                    }
+                    break;
+                case PlayerTeam.Defender:
+                    for (int i = 0; i < team.Value.Count; i++)
+                    {
+                        amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Thief, team.Value[i]);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     private void ResetTimer()

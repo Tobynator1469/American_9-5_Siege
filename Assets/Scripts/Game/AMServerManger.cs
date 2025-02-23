@@ -124,9 +124,17 @@ public class AMServerManger : ServerManager
     }
 
     [ServerRpc]
-    private void SpawnPlayer_ServerRpc(PlayerTeam team, ulong id)
+    public void SpawnPlayer_ServerRpc(PlayerTeam team, ulong id)
     {
-        string playerName = FindPlayer(id).playerName;
+        var player_ = FindPlayer(id);
+
+        if (!player_)
+        {
+            DebugClass.Error("Failed to Spawn Player!, Player was Invalid!");
+            return;
+        }
+
+        string playerName = player_.playerName;
 
         DestroyPlayer_ServerRpc(id); //Destroy Instance before instantiating another one
 
@@ -252,12 +260,6 @@ public class AMServerManger : ServerManager
     {
         var pID = ID;
 
-        if (hasGameStarted)
-        {
-            //DebugClass.Log("Unauthorized Team switch, from player with ID: " + pID);
-            return;
-        }
-
         SwitchPlayerToTeam_ClientRpc(ID, teamSelected);
     }
 
@@ -361,5 +363,10 @@ public class AMServerManger : ServerManager
     public Dictionary<PlayerTeam, List<ulong>> GetTeamPlayerList()
     {
         return teams;
+    }
+
+    public bool HasGameStarted()
+    {
+        return hasGameStarted;
     }
 }

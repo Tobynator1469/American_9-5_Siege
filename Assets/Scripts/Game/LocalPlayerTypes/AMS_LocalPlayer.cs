@@ -1,5 +1,7 @@
+using Assets.Scripts;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Video;
 
 public class AMS_LocalPlayer : LocalPlayer
 {
@@ -15,8 +17,6 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.BindOnGamePendingState(OnGamePendingState);
         amsPlayer.BindOnGameChangedRoundMoney(OnRoundMoneyChanged);
         amsPlayer.BindOnChangedTeam(OnTeamChanged);
-
-        amsPlayer.OnSwitchTeams_Rpc(PlayerTeam.Thief);
 
         GetServerManager<AMServerManger>().GetServerPlayerDataRpc();
     }
@@ -38,6 +38,12 @@ public class AMS_LocalPlayer : LocalPlayer
         {
             Interact();
         }
+
+        if (Input.GetKeyDown(KeyCode.F1))
+            SwitchTeams(PlayerTeam.Thief);
+
+        if (Input.GetKeyDown(KeyCode.F2))
+            SwitchTeams(PlayerTeam.Defender);
     }
 
     private void UpdateMoneyValue(int currentMoney)
@@ -57,7 +63,7 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.OnInteract_Rpc(yDir);
     }
 
-    void OnTeamChanged(AMSPlayer _this, PlayerTeam team)
+    private void OnTeamChanged(AMSPlayer _this, PlayerTeam team)
     {
         if(team == PlayerTeam.Thief)
         {
@@ -69,13 +75,30 @@ public class AMS_LocalPlayer : LocalPlayer
         }
     }
 
-    void OnRoundMoneyChanged(AMSPlayer _this, int RoundMoney)
+    private void OnRoundMoneyChanged(AMSPlayer _this, int RoundMoney)
     {
         UpdateMoneyValue(RoundMoney);
     }
 
-    void OnGamePendingState(AMSPlayer _this, bool isGamePendingStart)
+    private void OnGamePendingState(AMSPlayer _this, bool isGamePendingStart)
     {
         
+    }
+
+    private void SwitchTeams(PlayerTeam team)
+    {
+        var Player = GetOwningPlayer<AMSPlayer>();
+
+        switch (team)
+        {
+            case PlayerTeam.Thief:
+            case PlayerTeam.Defender:
+                GetOwningPlayer<AMSPlayer>().OnSwitchTeams_Rpc(team);
+                break;
+
+            default:
+                DebugClass.Log("Wrongfull Team Change!");
+                break;
+        }
     }
 }
