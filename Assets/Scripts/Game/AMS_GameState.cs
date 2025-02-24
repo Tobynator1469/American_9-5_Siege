@@ -1,6 +1,9 @@
+using Assets.Scripts;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.Netcode;
+using Unity.Services.Matchmaker.Models;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public enum EGameState
@@ -172,66 +175,67 @@ public class AMS_GameState : NetworkBehaviour
         if (!CanRunGameState())
             return;
 
-        switch (gameState)
+        if(IsHost)
         {
-            case EGameState.RoundStart:
-                if(timeTillRoundStartCur >= timeTillRoundStart)
-                {
-                    gameState = EGameState.GameRunning;
-
-                    OnRoundStart();
-                }
-                else
-                {
-                    UpdateTimer(timeTillRoundStartCur);
-
-                    timeTillRoundStartCur += Time.deltaTime;
-                }
-                break;
-
-            case EGameState.GameRunning:
-                if(timeTillRoundEndCur >= timeTillRoundEnd)
-                {
-                    gameState = EGameState.RoundEnd;
-
-                    OnRoundEnd();
-                }
-                else
-                {
-                    UpdateGame();
-
-                    UpdateTimer(timeTillRoundEndCur);
-
-                    timeTillRoundEndCur += Time.deltaTime;
-                }
-                break;
-
-            case EGameState.RoundEnd:
-                if(timeTillPostEnd_EndCur >= timeTillPostEnd_End)
-                {
-                    if(OnNextRound())
+            switch (gameState)
+            {
+                case EGameState.RoundStart:
+                    if (timeTillRoundStartCur >= timeTillRoundStart)
                     {
-                        gameState = EGameState.RoundStart;
+                        gameState = EGameState.GameRunning;
 
-                        SetPlayersMovementState_ServerRpc(false);
+                        OnRoundStart();
                     }
                     else
                     {
-                        gameState = EGameState.None;
+                        UpdateTimer(timeTillRoundStartCur);
 
-                        OnStateEnded();
+                        timeTillRoundStartCur += Time.deltaTime;
                     }
-                }
-                else
-                {
-                    UpdateTimer(timeTillPostEnd_EndCur);
+                    break;
 
-                    timeTillPostEnd_EndCur += Time.deltaTime;
-                }
-                break;
+                case EGameState.GameRunning:
+                    if (timeTillRoundEndCur >= timeTillRoundEnd)
+                    {
+                        gameState = EGameState.RoundEnd;
 
-            default:
-                break;
+                        OnRoundEnd();
+                    }
+                    else
+                    {
+                        UpdateGame();
+
+                        UpdateTimer(timeTillRoundEndCur);
+
+                        timeTillRoundEndCur += Time.deltaTime;
+                    }
+                    break;
+
+                case EGameState.RoundEnd:
+                    if (timeTillPostEnd_EndCur >= timeTillPostEnd_End)
+                    {
+                        if (OnNextRound())
+                        {
+                            gameState = EGameState.RoundStart;
+                        }
+                        else
+                        {
+                            gameState = EGameState.None;
+
+                            OnStateEnded_ServerRpc();
+                        }
+                    }
+                    else
+                    {
+                        UpdateTimer(timeTillPostEnd_EndCur);
+
+                        timeTillPostEnd_EndCur += Time.deltaTime;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
         }
     }
 
@@ -265,22 +269,43 @@ public class AMS_GameState : NetworkBehaviour
 
         gameState = EGameState.RoundStart;
 
-        if(IsHost)
-            SwitchPlayerTeams_ServerRpc();
+        SwitchPlayerTeams_ServerRpc();
+
+        StartGame_ServerRpc();
 
         return true;
     }
 
-    private void OnStateEnded()
+    [ServerRpc]
+    private void OnStateEnded_ServerRpc()
     {
         if(onGameEnded != null)
             onGameEnded(this);
+
+        var connectedPlayers = m_cachedTeams;
+
+        foreach (var player in connectedPlayers)
+        {
+            var list = player.Value;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Lobby, list[i]);
+            }
+        }
+
+        this.NetworkObject.Despawn();
     }
 
-    private void UpdateTimer(float timer)
+
+    [ServerRpc]
+    public void StartGame_ServerRpc()
     {
-        if (onGameUpdateTimer != null)
-            onGameUpdateTimer(this, gameState, timer);
+        this.timeTillRoundStartCur = 0.0f;
+
+        this.gameState = EGameState.RoundStart;
+
+        SetPlayersMovementState_ServerRpc(false);
     }
 
     [ServerRpc]
@@ -290,7 +315,7 @@ public class AMS_GameState : NetworkBehaviour
 
         foreach(var player in connectedPlayers)
         {
-            player.Value.SetCanMoveServerRpc(false);
+            player.Value.SetCanMoveServerRpc(canMove);
         }
     }
 
@@ -319,6 +344,12 @@ public class AMS_GameState : NetworkBehaviour
                     break;
             }
         }
+    }
+
+    private void UpdateTimer(float timer)
+    {
+        if (onGameUpdateTimer != null)
+            onGameUpdateTimer(this, gameState, timer);
     }
 
     private void ResetTimer()

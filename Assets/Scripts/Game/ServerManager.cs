@@ -552,6 +552,7 @@ public class ServerManager : NetworkBehaviour
         return playerOut;
     }
 
+
     public void AddPlayer(Player player)
     {
         if (IsServer)
@@ -594,5 +595,10 @@ public class ServerManager : NetworkBehaviour
     static public bool CheckAuthorityServer(RpcParams param)
     {
         return param.Receive.SenderClientId == 0;
+    }
+
+    protected GameObject GetDefaultPlayerPrefab()
+    {
+        return playerPrefab;
     }
 }

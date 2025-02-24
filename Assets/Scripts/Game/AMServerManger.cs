@@ -2,11 +2,13 @@ using Assets.Scripts;
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
+using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
 
 public enum PlayerTeam
 {
     None,
+    Lobby,
     Thief,
     Defender,
     Spectator
@@ -146,6 +148,9 @@ public class AMServerManger : ServerManager
 
         switch (team)
         {
+            case PlayerTeam.Lobby:
+                instance = Instantiate(GetDefaultPlayerPrefab(), transform.position, transform.rotation);
+                break;
             case PlayerTeam.Thief:
                 instance = Instantiate(ThiefPrefab, transform.position, transform.rotation);
                 break;
@@ -162,19 +167,20 @@ public class AMServerManger : ServerManager
         }
 
         var netObjComp = instance.GetComponent<NetworkObject>();
-        var playerComp = netObjComp.GetComponent<Player>();
+        var playerComp = netObjComp.GetComponent<AMSPlayer>();
+
+        //Update Player Instance
+
+        #region UpdateList
+
+        if (!connectedPlayers.ContainsKey(id))
+            connectedPlayers.Add(id, playerComp);
+        else
+            connectedPlayers[id] = playerComp;
+
+        #endregion
 
         IntializeDefaults_PlayerComp(playerComp);
-
-        if(!isSpectator)
-        {
-            var amsCast = (AMSPlayer)playerComp;
-
-            //OnInitializeAMS_PlayerDefaults(amsCast);
-
-            if (!connectedPlayers.ContainsKey(id))
-                connectedPlayers.Add(id, amsCast);
-        }
 
         playerComp.BindOnDestroy(OnPlayerDestroyed);
 
@@ -196,12 +202,16 @@ public class AMServerManger : ServerManager
     [ServerRpc]
     private void OnGameStarted_ServerRpc()
     {
+        BalanceTeams();
+
         var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(players);
 
         foreach (var item in playerEntries)
         {
             SpawnPlayer_ServerRpc(item.Value, item.Key);
         }
+
+        SpawnGameState();
     }
 
     private void SpawnGameState()
@@ -212,7 +222,14 @@ public class AMServerManger : ServerManager
 
         if (gameStateObj)
         {
+            gameStateObj.NetworkObject.Spawn();
+
             gameStateObj.BindOnGameStateDestroyed(OnGameStateDestroyed);
+            gameStateObj.OnBindServerManager(this);
+
+            gameStateObj.StartGame_ServerRpc();
+
+            DebugClass.Log("Started Game State!");
         }
         else
         {
@@ -224,7 +241,7 @@ public class AMServerManger : ServerManager
 
     private void OnGameStateDestroyed(AMS_GameState gameState)
     {
-
+        hasGameStarted = false;
     }
 
 
@@ -331,6 +348,11 @@ public class AMServerManger : ServerManager
             players.Add(pID, team);
             teams[team].Add(pID);
         }
+    }
+
+    protected void BalanceTeams()
+    {
+
     }
 
     protected PlayerTeam FindPlayerTeam(ulong pID)

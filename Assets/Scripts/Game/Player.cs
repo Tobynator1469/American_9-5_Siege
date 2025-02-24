@@ -452,10 +452,13 @@ public class Player : NetworkBehaviour
     {
         this.canMove = canMove;
 
-        if(canMove)
-            this.playerRigidBody.isKinematic = false;
-        else
-            this.playerRigidBody.isKinematic = true;
+        if (this.playerRigidBody)
+        {
+            if (canMove)
+                this.playerRigidBody.isKinematic = false;
+            else
+                this.playerRigidBody.isKinematic = true;
+        }
     }
 
     [ClientRpc]
@@ -474,10 +477,13 @@ public class Player : NetworkBehaviour
     {
         this.canMove = canMove;
 
-        if(canMove)
-            this.playerRigidBody.isKinematic = false;
-        else
-            this.playerRigidBody.isKinematic = true;
+        if(this.playerRigidBody)
+        {
+            if (canMove)
+                this.playerRigidBody.isKinematic = false;
+            else
+                this.playerRigidBody.isKinematic = true;
+        }
     }
 
     [ServerRpc]
