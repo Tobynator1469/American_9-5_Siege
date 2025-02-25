@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
+using static UnityEditor.Progress;
 
 public enum PlayerTeam
 {
@@ -25,13 +26,21 @@ public class AMServerManger : ServerManager
     [SerializeField]
     private GameObject SpectatorPrefab = null;
 
+    [SerializeField]
+    private GameObject SpectatorLocalPlayer = null;
+
     [SerializeField, Tooltip("Set the Specific Game State for the Scene!")]
     private GameObject GameStatePrefab = null;
+
+    [SerializeField]
+    private GameObject MapCutscene = null;
 
     [SerializeField]
     private GameObject SpectatorSpawnLocation = null;
 
     private AMS_GameState gameState = null; //Current Game State
+
+    private MultiplayerCutscene currentPlayingCutscene = null;
 
     Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
 
@@ -39,6 +48,7 @@ public class AMServerManger : ServerManager
     { { PlayerTeam.Thief, new List<ulong>() }, { PlayerTeam.Defender, new List<ulong>() }, { PlayerTeam.Spectator, new List<ulong>() } };
 
     Dictionary<ulong, PlayerTeam> players = new Dictionary<ulong, PlayerTeam>();
+    Dictionary<ulong, PlayerTeam> playerCopy = null;
 
     private float defaultRaycastDistance = 4.0f;
 
@@ -158,7 +168,7 @@ public class AMServerManger : ServerManager
                 instance = Instantiate(DefenderPrefab, transform.position, transform.rotation);
                 break;
             case PlayerTeam.Spectator:
-                instance = Instantiate(SpectatorPrefab, transform.position, transform.rotation);
+                instance = Instantiate(SpectatorPrefab, Vector3.zero, Quaternion.Euler(Vector3.zero));
                 isSpectator = true;
                 break;
 
@@ -190,7 +200,10 @@ public class AMServerManger : ServerManager
 
         netObjComp.Spawn(true);
 
-        CreateLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
+        if(isSpectator)
+            CreateAMS_SpectatorLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
+        else
+            CreateLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
 
         ShareNewNameClientRpc(netObjComp.NetworkObjectId, playerName);
 
@@ -199,9 +212,68 @@ public class AMServerManger : ServerManager
         SwitchPlayerToTeam_ClientRpc(id, team);
     }
 
+    [Rpc(SendTo.SpecifiedInParams)]
+    protected void CreateAMS_SpectatorLocalPlayerRpc(ulong EntityID, RpcParams toSender)
+    {
+        if (!CheckAuthorityServer(toSender))
+            return;
+
+        var localPlayer = GetNetworkObject(EntityID);
+
+        var inst = Instantiate(SpectatorLocalPlayer, localPlayer.transform.position + (Vector3.up * defaultHeadHeight), localPlayer.transform.rotation);
+
+        inst.transform.parent = localPlayer.transform;
+
+        inst.transform.rotation = localPlayer.transform.rotation;
+
+        var localPlayerComp = inst.GetComponent<LocalPlayer>();
+        var playerComp = localPlayer.GetComponent<Player>();
+
+        localPlayerComp.BindNetworkPlayer(playerComp);
+        localPlayerComp.OnInitializedLocalPlayer();
+    }
+
     [ServerRpc]
     private void OnGameStarted_ServerRpc()
     {
+        playerCopy = new Dictionary<ulong, PlayerTeam>(players);
+
+        var list = new List<Player>(GetPlayerList());
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            SpawnPlayer_ServerRpc(PlayerTeam.Spectator, list[i].id);
+        }
+
+        SpawnCutscene();
+    }
+
+    private void SpawnCutscene()
+    {
+        GameObject instance = Instantiate(MapCutscene, Vector3.zero, Quaternion.Euler(Vector3.zero));
+
+        currentPlayingCutscene = instance.GetComponent<MultiplayerCutscene>();
+
+        if(currentPlayingCutscene)
+        {
+            currentPlayingCutscene.NetworkObject.Spawn();
+
+            currentPlayingCutscene.BindOnEndCutscene(OnEndCutscene);
+
+            currentPlayingCutscene.BindServerManager(this);
+
+            currentPlayingCutscene.StartCutscene_ServerRpc("GameStart");
+        }
+    }
+
+    private void OnEndCutscene(MultiplayerCutscene cutscene)
+    {
+        cutscene.NetworkObject.Despawn();
+
+        players = new Dictionary<ulong, PlayerTeam>(playerCopy);
+
+        playerCopy = null;
+
         BalanceTeams();
 
         var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(players);
@@ -391,5 +463,10 @@ public class AMServerManger : ServerManager
         }
 
         return null;
+    }
+
+    public bool HasConnctedPlayer(ulong pID)
+    {
+        return connectedPlayers.ContainsKey(pID);
     }
 }

@@ -156,7 +156,8 @@ public class LocalPlayer : MonoBehaviour
 
             this.manager.GetServerPlayerDataRpc();
 
-            this.sensitivitySlider.onValueChanged.AddListener(OnSensitivityChanged);
+            if(this.sensitivitySlider)
+                this.sensitivitySlider.onValueChanged.AddListener(OnSensitivityChanged);
         }
 
         OnInitialized();

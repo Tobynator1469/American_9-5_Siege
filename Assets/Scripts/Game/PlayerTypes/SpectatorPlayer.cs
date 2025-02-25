@@ -1,16 +1,29 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class SpectatorPlayer : MonoBehaviour
+public class SpectatorPlayer : AMSPlayer
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [ServerRpc]
+    protected override void OnNetworkRequestUpdateData_ServerRpc()
     {
-        
+        OnNetworkUpdateData_ClientRpc(CraftSpectatorPlayerUpdateData());
     }
 
-    // Update is called once per frame
-    void Update()
+    [ClientRpc]
+    private void OnNetworkUpdateData_ClientRpc(AMSPlayerData data_)
     {
-        
+        UnpackServerData_AMSPlayer(data_);
+
+        if (onUpdatePlayer != null)
+            onUpdatePlayer(this);
+    }
+
+    private AMSPlayerData CraftSpectatorPlayerUpdateData()
+    {
+        AMSPlayerData dataOut = new AMSPlayerData();
+
+        dataOut = CraftAMSPlayerData();
+
+        return dataOut;
     }
 }
