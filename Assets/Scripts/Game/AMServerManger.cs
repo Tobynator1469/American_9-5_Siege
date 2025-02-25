@@ -319,15 +319,6 @@ public class AMServerManger : ServerManager
             DebugClass.Log("Object id was invalid");
     }
 
-    protected AMSPlayer FindConnectedPlayer(ulong pID)
-    {
-        if(connectedPlayers.TryGetValue(pID, out var player))
-        { 
-            return player;
-        }
-
-        return null;
-    }
 
     [ClientRpc]
     protected void SwitchPlayerToTeam_ClientRpc(ulong pID, PlayerTeam team)
@@ -390,5 +381,15 @@ public class AMServerManger : ServerManager
     public bool HasGameStarted()
     {
         return hasGameStarted;
+    }
+
+    public AMSPlayer FindConnectedPlayer(ulong pID)
+    {
+        if (connectedPlayers.TryGetValue(pID, out var player))
+        {
+            return player;
+        }
+
+        return null;
     }
 }

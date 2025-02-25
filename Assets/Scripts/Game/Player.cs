@@ -430,7 +430,7 @@ public class Player : NetworkBehaviour
 
             this.isAlive = new PBool(PBool.EBoolState.FalseThisFrame);
 
-            SetPositionServerRpc(sv.GetRandomSpawnLocation(true).position);
+            //SetPositionServerRpc(sv.GetRandomSpawnLocation(true).position);
         }
     }
 

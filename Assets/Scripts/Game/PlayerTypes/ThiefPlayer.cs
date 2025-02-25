@@ -24,9 +24,6 @@ struct ThiefPlayerData : INetworkSerializable
 
 public class ThiefPlayer : AMSPlayer
 {
-    [SerializeField]
-    public GameObject[] itemHands = new GameObject[2];
-
     public int lockpicks = 0;
 
     [ServerRpc]

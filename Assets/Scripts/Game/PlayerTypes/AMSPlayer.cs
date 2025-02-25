@@ -1,12 +1,19 @@
 using Assets.Scripts;
-using JetBrains.Annotations;
-using System;
-using System.Data;
-using System.Diagnostics;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.LowLevel;
-using static AMSPlayer;
+
+public struct ItemSlot
+{
+    public Transform positionToStore;
+    public bool hasItem;
+
+    public ItemSlot(Transform positionToStore)
+    {
+        this.positionToStore = positionToStore;
+
+        hasItem = false;
+    }
+}
 public struct AMSPlayerData : INetworkSerializable
 {
     public PlayerUpdateData baseData;
@@ -67,6 +74,9 @@ public abstract class AMSPlayer : Player
     public PlayerTeam currentTeam = PlayerTeam.None;
 
     [SerializeField]
+    private ItemSlot[] holdingHand = null; //the hands where stuff gets hold
+
+    [SerializeField]
     private float raycastDistance = 4.0f;
 
     public int offshoreMoney = 0;
@@ -80,6 +90,7 @@ public abstract class AMSPlayer : Player
     public PBool isGamePendingStart = new PBool(false);
     public PBool hasRoundMoneyUpdated = new PBool(false);
     public PBool hasChangedTeam = new PBool(false);
+    public PBool hasBeenKnocked = new PBool(false);
 
     private bool canInteract = true;
 
@@ -122,6 +133,32 @@ public abstract class AMSPlayer : Player
         currentUpdateRoundMoney = money;
 
         this.serverManager.GetComponent<AMServerManger>().PlayerRoundMoneyHasUpdated_ServerRpc(id, money);
+    }
+
+    [ServerRpc]
+    public void DamagePlayer_ServerRpc(int damage)
+    {
+        if (hasBeenKnocked.GetBool())
+            return;
+
+        playerHealth -= damage;
+
+        if (playerHealth < 0)
+        {
+            hasBeenKnocked = new PBool(PBool.EBoolState.TrueThisFrame); //Tell owning player hes knocked
+
+            OnPlayerAMS_Knocked_ClientRpc(); //Spawn Effects and tell Clients they can Arrest
+        }
+    }
+
+    public void PickupItem(int slot, AMS_Item itemOnGround)
+    {
+        if(CanPickupItem(slot))
+        {
+            holdingHand[slot].hasItem = true;
+
+            itemOnGround.transform.SetParent(holdingHand[slot].positionToStore);
+        }
     }
 
     [Rpc(SendTo.SpecifiedInParams)]
@@ -182,6 +219,12 @@ public abstract class AMSPlayer : Player
             return;
 
         srvManager.OnPlayerSwitchTeams_ServerRpc(id, team);
+    }
+
+    [ClientRpc]
+    private void OnPlayerAMS_Knocked_ClientRpc()
+    {
+
     }
 
     protected AMSPlayerData CraftAMSPlayerData()
@@ -295,6 +338,13 @@ public abstract class AMSPlayer : Player
         }
     }
 
+    protected bool CanPickupItem(int slot)
+    {
+        if (holdingHand.Length > 0 && slot < holdingHand.Length)
+            return CanInteract();
+
+        return false;
+    }
     protected bool IsValidTeam(PlayerTeam team)
     {
         return (team != PlayerTeam.None);
@@ -308,5 +358,10 @@ public abstract class AMSPlayer : Player
     public float GetRaycastDist()
     {
         return raycastDistance;
+    }
+
+    public int GetHoldingHandDamage()
+    {
+        return 0;
     }
 }
