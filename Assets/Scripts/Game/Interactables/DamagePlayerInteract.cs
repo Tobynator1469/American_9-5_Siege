@@ -39,7 +39,7 @@ public class DamagePlayerInteract : Interactable
     }
     protected override void OnInteract(ulong id, AMServerManger serverManger, Vector3 relativeDirection)
     {
-        if (!CanBeDamaged())
+        if (!CanBeDamaged() || playerToDamage.IsKnocked())
             return;
 
         base.OnInteract(id, serverManger, relativeDirection); //Comment out later!

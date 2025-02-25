@@ -364,4 +364,9 @@ public abstract class AMSPlayer : Player
     {
         return 0;
     }
+
+    public bool IsKnocked()
+    {
+        return hasBeenKnocked.GetBool();
+    }
 }
