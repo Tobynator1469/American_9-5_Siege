@@ -120,7 +120,7 @@ public class LocalPlayer : MonoBehaviour
         }
     }
 
-    private void CreateGameState(string text, float showTime, float holdTime, float hideTime, bool force = false)
+    protected void CreateGameState(string text, float showTime, float holdTime, float hideTime, bool force = false)
     {
         if(this.hasGameStateUI)
         {

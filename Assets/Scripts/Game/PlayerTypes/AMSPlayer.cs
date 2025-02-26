@@ -76,6 +76,8 @@ public abstract class AMSPlayer : Player
     public PlayerTeam currentTeam = PlayerTeam.None;
 
     [SerializeField]
+    private Transform[] holdingHandspots = null;
+
     private ItemSlot[] holdingHand = new ItemSlot[6]; //the hands where stuff gets hold
 
     [SerializeField]
@@ -268,6 +270,19 @@ public abstract class AMSPlayer : Player
         }
     }
 
+    protected override void IntializePlayer()
+    {
+        var length = holdingHandspots.Length;
+
+        if (holdingHandspots.Length > holdingHand.Length)
+            length = holdingHand.Length;
+
+        for (int i = 0; i < length; i++)
+        {
+            holdingHand[i].positionToStore = holdingHandspots[i];
+        }
+    }
+
     [ClientRpc]
     private void OnPlayerAMS_Knocked_ClientRpc()
     {
@@ -443,12 +458,16 @@ public abstract class AMSPlayer : Player
 
         if (slot >= 0)
         {
+            var itemStoreTransform = holdingHand[slot].positionToStore;
+
             holdingHand[slot].hasItem = true;
             holdingHand[slot].item = item;
 
-            item.holdingPosition = holdingHand[slot].positionToStore;
+            item.holdingPosition = itemStoreTransform;
 
-            item.transform.SetParent(holdingHand[slot].positionToStore, false);
+            item.transform.SetParent(this.transform, false);
+
+            item.transform.SetPositionAndRotation(itemStoreTransform.position, itemStoreTransform.rotation);
 
             return true;
         }

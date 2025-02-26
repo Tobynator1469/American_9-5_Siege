@@ -19,6 +19,8 @@ public class DamagePlayerInteract : Interactable
     private bool delayedDamage = false;
     private bool delayRunning = false;
 
+    private bool allowTeamDamage = false;
+
     protected override void OnSpawned()
     {
         playerToDamage = GetComponent<AMSPlayer>();
@@ -42,20 +44,16 @@ public class DamagePlayerInteract : Interactable
         if (!CanBeDamaged() || playerToDamage.IsKnocked())
             return;
 
-        base.OnInteract(id, serverManger, relativeDirection); //Comment out later!
+        var damager = serverManger.FindConnectedPlayer(id);
 
-        int extraDamage = 0;
+        if (!damager || !allowTeamDamage && damager.currentTeam == playerToDamage.currentTeam)
+            return;
 
-        var player = serverManger.FindConnectedPlayer(id);
-
-        if (player)
-        {
-            extraDamage = player.GetHoldingHandDamage();
-        }
+        int extraDamage = damager.GetHoldingHandDamage();
 
         playerToDamage.DamagePlayer_ServerRpc(baseDamage + extraDamage);
 
-        OnDamagedPlayer_Server(player);
+        OnDamagedPlayer_Server(damager);
     }
 
     protected virtual void OnDamagedPlayer_Server(AMSPlayer source)

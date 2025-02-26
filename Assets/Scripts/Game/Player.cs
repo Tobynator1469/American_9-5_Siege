@@ -2,6 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 using Assets.Scripts;
 using static AMSPlayer;
+using Unity.IO.LowLevel.Unsafe;
 
 public struct PBool
 {
@@ -752,6 +753,13 @@ public class Player : NetworkBehaviour
 
             svManager.AddPlayer(this);
         }
+
+        IntializePlayer();
+    }
+
+    protected virtual void IntializePlayer()
+    {
+
     }
 
     public GameObject GetPlayerHead()

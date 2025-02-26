@@ -196,9 +196,18 @@ MonoBehaviour:
   regenStaminaAmount: 10
   degenStaminaAmount: 20
   currentStamina: 0
+  currentTeam: 0
+  holdingHandspots:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   raycastDistance: 4
   offshoreMoney: 0
   playerHealth: 0
+  activeSlot: 0
   lastUpdateRoundMoney: 0
   currentUpdateRoundMoney: 0
 --- !u!1 &1452520740376009393

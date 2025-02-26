@@ -198,9 +198,13 @@ MonoBehaviour:
   degenStaminaAmount: 20
   currentStamina: 0
   currentTeam: 2
+  holdingHandspots:
+  - {fileID: 5710891547486200823}
+  - {fileID: 2916580253210539618}
   raycastDistance: 4
   offshoreMoney: 0
   playerHealth: 0
+  activeSlot: 0
   lastUpdateRoundMoney: 0
   currentUpdateRoundMoney: 0
 --- !u!1 &825863899564488230
@@ -228,7 +232,7 @@ Transform:
   m_GameObject: {fileID: 825863899564488230}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.402, y: 0, z: 0}
+  m_LocalPosition: {x: -0.402, y: 0.42, z: -1.988}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -500,7 +504,7 @@ Transform:
   m_GameObject: {fileID: 4652050715284403280}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.402, y: 0, z: 0}
+  m_LocalPosition: {x: 0.402, y: 0.42, z: -1.988}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

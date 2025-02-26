@@ -19,6 +19,7 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.BindOnGamePendingState(OnGamePendingState);
         amsPlayer.BindOnGameChangedRoundMoney(OnRoundMoneyChanged);
         amsPlayer.BindOnChangedTeam(OnTeamChanged);
+        amsPlayer.BindOnGameResultState(OnGameResult);
 
         GetServerManager<AMServerManger>().GetServerPlayerDataRpc();
     }
@@ -30,6 +31,7 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.UnbindOnGamePendingState(OnGamePendingState);
         amsPlayer.UnbindOnGameChangedRoundMoney(OnRoundMoneyChanged);
         amsPlayer.UnbindOnChangedTeam(OnTeamChanged);
+        amsPlayer.UnbindOnGameResultState(OnGameResult);
     }
 
     protected override void OnUpdateClientControls()
@@ -54,7 +56,7 @@ public class AMS_LocalPlayer : LocalPlayer
 
         for (int i = 0; i < 6; i++)
         {
-            if (Input.GetKeyDown(KeyCode.Alpha0 + i))
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i))
             {
                 var Player = GetOwningPlayer<AMSPlayer>();
 
@@ -99,7 +101,15 @@ public class AMS_LocalPlayer : LocalPlayer
 
     private void OnGamePendingState(AMSPlayer _this, bool isGamePendingStart)
     {
-        
+        CreateGameState("Game Pending Start!", 1.0f, 2.0f, 1.0f);
+    }
+
+    private void OnGameResult(Player _this, bool hasWon)
+    {
+        if (hasWon)
+            CreateGameState("You Won yayyyy!", 3.0f, 2.0f, 3.0f, true);
+        else
+            CreateGameState("You lost, Loser!", 3.0f, 2.0f, 3.0f, true);
     }
 
     private void SwitchTeams(PlayerTeam team)

@@ -4,6 +4,8 @@ using Assets.Scripts;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using static AMServerManger;
+using static Player;
 
 public enum PlayerTeam
 {
@@ -37,6 +39,9 @@ public class AMServerManger : ServerManager
     [SerializeField]
     private GameObject SpectatorSpawnLocation = null;
 
+    [SerializeField]
+    private GameObject vanGameObj = null;
+
     private AMS_GameState gameState = null; //Current Game State
 
     private MultiplayerCutscene currentPlayingCutscene = null;
@@ -44,7 +49,7 @@ public class AMServerManger : ServerManager
     Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
 
     Dictionary<PlayerTeam, List<ulong>> teams = new()
-    { { PlayerTeam.Thief, new List<ulong>() }, { PlayerTeam.Defender, new List<ulong>() }, { PlayerTeam.Spectator, new List<ulong>() } };
+    { { PlayerTeam.Thief, new List<ulong>() }, { PlayerTeam.Defender, new List<ulong>() }, { PlayerTeam.Spectator, new List<ulong>() }, { PlayerTeam.Lobby, new List<ulong>() } };
 
     Dictionary<ulong, PlayerTeam> players = new Dictionary<ulong, PlayerTeam>();
     Dictionary<ulong, PlayerTeam> playerCopy = null;
@@ -60,17 +65,29 @@ public class AMServerManger : ServerManager
     private bool hasGameStarted = false;
 
     public delegate void OnAMServerManagerDestroyed(AMServerManger sv);
+    public delegate void OnAMServerManagerGameStarted(AMServerManger sv, AMS_GameState gameState);
 
     private OnAMServerManagerDestroyed onAMServerManagerDestroyed = null;
+    private OnAMServerManagerGameStarted onAMServerManagerGameStarted = null;
 
     public void BindOnAMServerManagerDestroyed(OnAMServerManagerDestroyed onAMServerManagerDestroyed) 
     {
         this.onAMServerManagerDestroyed += onAMServerManagerDestroyed;
     }
 
+    public void BindOnAMServerManagerGameStarted(OnAMServerManagerGameStarted onAMServerManagerGameStarted)
+    {
+        this.onAMServerManagerGameStarted += onAMServerManagerGameStarted;
+    }
+
     public void UnbindOnAMServerManagerDestroyed(OnAMServerManagerDestroyed onAMServerManagerDestroyed)
     {
         this.onAMServerManagerDestroyed -= onAMServerManagerDestroyed;
+    }
+
+    public void UnbindOnAMServerManagerGameStarted(OnAMServerManagerGameStarted onAMServerManagerGameStarted)
+    {
+        this.onAMServerManagerGameStarted -= onAMServerManagerGameStarted;
     }
 
     protected override void OnStartServer()
@@ -275,6 +292,8 @@ public class AMServerManger : ServerManager
 #if !DebugSkipCutscene
         cutscene.NetworkObject.Despawn();
 #endif
+        SetVanVisibility_ClientRpc(true);
+
         BalanceTeams();
 
         var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(playerCopy);
@@ -288,20 +307,32 @@ public class AMServerManger : ServerManager
         SpawnGameState();
     }
 
+    [ClientRpc]
+    private void SetVanVisibility_ClientRpc(bool vanVisibility)
+    {
+        //if(vanGameObj)
+           // vanGameObj.SetActive(vanVisibility);
+    }
+
     private void SpawnGameState()
     {
         GameObject instance = Instantiate(GameStatePrefab, Vector3.zero, Quaternion.Euler(Vector3.zero));
 
-        var gameStateObj = instance.GetComponent<AMS_GameState>();
+        gameState = instance.GetComponent<AMS_GameState>();
 
-        if (gameStateObj)
+        if (gameState)
         {
-            gameStateObj.NetworkObject.Spawn();
+            gameState.NetworkObject.Spawn();
 
-            gameStateObj.BindOnGameStateDestroyed(OnGameStateDestroyed);
-            gameStateObj.OnBindServerManager(this);
+            gameState.BindOnGameStateDestroyed(OnGameStateDestroyed);
+            gameState.BindOnGameEnded(OnGameStateEnded);
 
-            gameStateObj.StartGame_ServerRpc();
+            gameState.OnBindServerManager(this);
+
+            gameState.StartGame_ServerRpc();
+
+            if(onAMServerManagerGameStarted != null)
+                onAMServerManagerGameStarted(this, gameState);
 
             DebugClass.Log("Started Game State!");
         }
@@ -315,7 +346,47 @@ public class AMServerManger : ServerManager
 
     private void OnGameStateDestroyed(AMS_GameState gameState)
     {
+        gameState.UnbindOnGameStateDestroyed(OnGameStateDestroyed);
+        gameState.UnbindOnGameEnded(OnGameStateEnded);
+
+        gameState = null;
+
         hasGameStarted = false;
+    }
+
+    private void OnGameStateEnded(AMS_GameState _this, Dictionary<bool, List<ulong>> playerState)
+    {
+        #region Return Game Results to Players
+
+        var pList = playerState[true];
+
+        if(pList != null)
+        {
+            for (int i = 0; i < pList.Count; i++)
+            {
+                var Player = FindConnectedPlayer(pList[i]);
+
+                Player.PlayerGameResult_ServerRpc(true);
+            }
+        }
+
+        pList = playerState[false];
+
+        if (pList != null)
+        {
+            for (int i = 0; i < pList.Count; i++)
+            {
+                var Player = FindConnectedPlayer(pList[i]);
+
+                Player.PlayerGameResult_ServerRpc(false);
+            }
+        }
+
+        #endregion
+
+        gameState.NetworkObject.Despawn();
+
+        SetVanVisibility_ClientRpc(false);
     }
 
 
@@ -365,7 +436,11 @@ public class AMServerManger : ServerManager
 
                 if(player)
                 {
+                    gameState.PlayerChangeTeamMoney_ServerRpc(player.currentTeam, newMoney);
+
                     player.hasRoundMoneyUpdated = new PBool(PBool.EBoolState.TrueThisFrame);
+                    player.currentUpdateRoundMoney = newMoney;
+
                     player.SetRoundMoney_Rpc(newMoney, RpcTarget.Single(player.id, RpcTargetUse.Temp));
                 }
             }
@@ -420,7 +495,7 @@ public class AMServerManger : ServerManager
 
     protected void BalanceTeams()
     {
-
+        GetPlayerList();
     }
 
     protected PlayerTeam FindPlayerTeam(ulong pID)

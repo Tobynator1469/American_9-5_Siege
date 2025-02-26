@@ -62,7 +62,7 @@ public class Van : NetworkBehaviour
 
                 player.SetRoundMoney_ServerRpc(player.currentUpdateRoundMoney + valueableItem.GetValueOfItem());
 
-                NetworkObject.Despawn();
+                valueableItem.NetworkObject.Despawn();
             }
         }
     }

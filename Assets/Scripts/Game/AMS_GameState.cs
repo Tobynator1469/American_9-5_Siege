@@ -1,3 +1,5 @@
+#define DebugBuild
+
 using Assets.Scripts;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -37,6 +39,9 @@ public class AMS_GameState : NetworkBehaviour
 
     private Dictionary<PlayerTeam, List<ulong>> m_cachedTeams = null;
 
+#if DebugBuild
+    [SerializeField]
+#endif
     private int roundsPlayed = 0;
 
     [SerializeField]
@@ -60,10 +65,15 @@ public class AMS_GameState : NetworkBehaviour
     private bool hasAMS = false;
     private bool hasPlayersCached = false;
 
+#if DebugBuild
+    [SerializeField]
+    private bool Debug_SkipRound = false;
+#endif
+
     public delegate void OnGameStateDestroyed(AMS_GameState _this);
     public delegate void OnGameRoundStarted(AMS_GameState _this);
     public delegate void OnGameRoundEnded(AMS_GameState _this);
-    public delegate void OnGameEnded(AMS_GameState _this);
+    public delegate void OnGameEnded(AMS_GameState _this, Dictionary<bool, List<ulong>> playerState);
 
     public delegate void OnGameUpdateTimer(AMS_GameState _this, EGameState gameState,float time);
 
@@ -177,6 +187,15 @@ public class AMS_GameState : NetworkBehaviour
 
         if(IsHost)
         {
+#if DebugBuild
+            if(Debug_SkipRound)
+            {
+                Debug_SkipRound = false;
+
+                gameState = EGameState.RoundEnd;
+            }
+#endif
+
             switch (gameState)
             {
                 case EGameState.RoundStart:
@@ -244,8 +263,6 @@ public class AMS_GameState : NetworkBehaviour
         if (onGameRoundStarted != null)
             onGameRoundStarted(this);
 
-        m_cachedTeams = new Dictionary<PlayerTeam, List<ulong>>(amsServerManger.GetTeamPlayerList());
-
         SetPlayersMovementState_ServerRpc(true);
     }
 
@@ -262,14 +279,25 @@ public class AMS_GameState : NetworkBehaviour
 
     private bool OnNextRound()
     {
-        if (roundsPlayed++ >= roundsToPlay)
+        if (++roundsPlayed >= roundsToPlay)
             return false;
 
         ResetTimer();
 
         gameState = EGameState.RoundStart;
 
+        int[] teamMoneyStates = { 0, 0 };
+
+        var state1 = teamDictionary[PlayerTeam.Thief];
+        var state2 = teamDictionary[PlayerTeam.Defender];
+
+        teamMoneyStates[0] = state1.roundMoney;
+        teamMoneyStates[1] = state2.roundMoney;
+
         SwitchPlayerTeams_ServerRpc();
+
+        teamDictionary[PlayerTeam.Thief] = state2;
+        teamDictionary[PlayerTeam.Defender] = state1;
 
         StartGame_ServerRpc();
 
@@ -279,10 +307,9 @@ public class AMS_GameState : NetworkBehaviour
     [ServerRpc]
     private void OnStateEnded_ServerRpc()
     {
-        if(onGameEnded != null)
-            onGameEnded(this);
+        var playerList = GetTeamListCopy();
 
-        var connectedPlayers = m_cachedTeams;
+        var connectedPlayers = new Dictionary<PlayerTeam, List<ulong>>(m_cachedTeams);
 
         foreach (var player in connectedPlayers)
         {
@@ -294,7 +321,40 @@ public class AMS_GameState : NetworkBehaviour
             }
         }
 
-        this.NetworkObject.Despawn();
+        if (onGameEnded != null)
+        {
+            PlayerTeam winningTeam = (teamDictionary[PlayerTeam.Thief].roundMoney > teamDictionary[PlayerTeam.Defender].roundMoney ? PlayerTeam.Thief : PlayerTeam.Defender);
+
+            Dictionary<bool, List<ulong>> playerState = new()
+            {
+                { false, new List<ulong>() },
+                { true, new List<ulong>() }
+            };
+
+            foreach (var team in playerList)
+            {
+                if(team.Key == winningTeam)
+                {
+                    var winnerList = playerState[true];
+
+                    for (int i = 0; i < team.Value.Count; i++)
+                    {
+                        winnerList.Add(team.Value[i]);
+                    }
+                }
+                else
+                {
+                    var loserList = playerState[false];
+
+                    for (int i = 0; i < team.Value.Count; i++)
+                    {
+                        loserList.Add(team.Value[i]);
+                    }
+                }
+            }
+
+            onGameEnded(this, playerState);
+        }
     }
 
 
@@ -306,6 +366,36 @@ public class AMS_GameState : NetworkBehaviour
         this.gameState = EGameState.RoundStart;
 
         SetPlayersMovementState_ServerRpc(false);
+
+        m_cachedTeams = new Dictionary<PlayerTeam, List<ulong>>(amsServerManger.GetTeamPlayerList());
+
+        #region UpdateTeamsMoney
+
+        var listThief = m_cachedTeams[PlayerTeam.Thief];
+
+        if (listThief.Count > 0)
+        {
+            var thiefPlayer = amsServerManger.FindConnectedPlayer((listThief[0]));
+
+            if (thiefPlayer)
+            {
+                thiefPlayer.SetRoundMoney_ServerRpc(teamDictionary[PlayerTeam.Thief].roundMoney);
+            }
+        }
+
+        var listDefender = m_cachedTeams[PlayerTeam.Defender];
+
+        if (listDefender.Count > 0)
+        {
+            var defenderPlayer = amsServerManger.FindConnectedPlayer((listDefender[0]));
+
+            if (defenderPlayer)
+            {
+                defenderPlayer.SetRoundMoney_ServerRpc(teamDictionary[PlayerTeam.Defender].roundMoney);
+            }
+        }
+
+        #endregion
     }
 
     [ServerRpc]
@@ -317,6 +407,16 @@ public class AMS_GameState : NetworkBehaviour
         {
             player.Value.SetCanMoveServerRpc(canMove);
         }
+    }
+
+    [ServerRpc]
+    public void PlayerChangeTeamMoney_ServerRpc(PlayerTeam team, int money)
+    {
+        var teamState = teamDictionary[team];
+
+        teamState.roundMoney = money;
+
+        teamDictionary[team] = teamState;
     }
 
     [ServerRpc]
@@ -344,6 +444,17 @@ public class AMS_GameState : NetworkBehaviour
                     break;
             }
         }
+    }
+
+    private Dictionary<PlayerTeam, List<ulong>> GetTeamListCopy()
+    {
+        var listOriginal = amsServerManger.GetTeamPlayerList();
+
+        return new()
+        {
+            {PlayerTeam.Defender, new List<ulong>(listOriginal[PlayerTeam.Defender]) },
+            {PlayerTeam.Thief, new List<ulong>(listOriginal[PlayerTeam.Thief]) }
+        };
     }
 
     private void UpdateTimer(float timer)

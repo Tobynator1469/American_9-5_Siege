@@ -26,8 +26,6 @@ public abstract class AMS_Item : Interactable
     {
         if(!hasBeenPickedUp)
         {
-            SetItemActive_ServerRpc(false);
-
             var player = serverManger.FindConnectedPlayer(id);
 
             if (player)
@@ -35,6 +33,7 @@ public abstract class AMS_Item : Interactable
                 if (player.PickupItem(this))
                 {
                     OnItemState(true, id);
+                    SetItemActive_ServerRpc(false);
                 }
             }
         }
@@ -60,7 +59,7 @@ public abstract class AMS_Item : Interactable
             m_Renderer.enabled = active;
         }
 
-        isInteractable = active;
+       // isInteractable = active;
 
         if (colliders != null)
         {
@@ -68,6 +67,11 @@ public abstract class AMS_Item : Interactable
             {
                 colliders[i].enabled = active;
             }
+        }
+
+        if(rigidBody)
+        {
+            rigidBody.isKinematic = !active;
         }
     }
 
@@ -84,7 +88,9 @@ public abstract class AMS_Item : Interactable
     [Rpc(SendTo.Server)]
     public void DropItem_ServerRpc(RpcParams rpc = default)
     {
-        if(rpc.Receive.SenderClientId != ownerPlayerID)
+        var senderID = rpc.Receive.SenderClientId;
+
+        if (senderID != ownerPlayerID && senderID != NetworkManager.ServerClientId)
         {
             DebugClass.Error("Non Owner Tried Droping up Item!");
             return;
