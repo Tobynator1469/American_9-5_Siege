@@ -1,7 +1,10 @@
+//#define DebugSkipCutscene
+
 using Assets.Scripts;
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Services.Matchmaker.Models;
 using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
 using static UnityEditor.Progress;
@@ -209,6 +212,7 @@ public class AMServerManger : ServerManager
 
         ShareNewPlayerTeam_ClientRpc(netObjComp.NetworkObjectId, team);
 
+        DebugClass.Log("Switching Player to Team: " + team.ToString());
         SwitchPlayerToTeam_ClientRpc(id, team);
     }
 
@@ -245,7 +249,11 @@ public class AMServerManger : ServerManager
             SpawnPlayer_ServerRpc(PlayerTeam.Spectator, list[i].id);
         }
 
+#if DebugSkipCutscene
+        OnEndCutscene(null);
+#else
         SpawnCutscene();
+#endif
     }
 
     private void SpawnCutscene()
@@ -268,19 +276,17 @@ public class AMServerManger : ServerManager
 
     private void OnEndCutscene(MultiplayerCutscene cutscene)
     {
+#if !DebugSkipCutscene
         cutscene.NetworkObject.Despawn();
-
-        players = new Dictionary<ulong, PlayerTeam>(playerCopy);
-
-        playerCopy = null;
-
+#endif
         BalanceTeams();
 
-        var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(players);
+        var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(playerCopy);
 
         foreach (var item in playerEntries)
         {
             SpawnPlayer_ServerRpc(item.Value, item.Key);
+            SwitchPlayerToTeam_ClientRpc(item.Key, item.Value);
         }
 
         SpawnGameState();
@@ -397,8 +403,11 @@ public class AMServerManger : ServerManager
     {
         var curTeam = FindPlayerTeam(pID);
 
-        if (curTeam == team) 
+        if (curTeam == team)
+        {
+            DebugClass.Log("Same Team, Skipping Change, Team: " + team.ToString());
             return;
+        }
 
         if (curTeam != PlayerTeam.None)
         {
@@ -406,7 +415,7 @@ public class AMServerManger : ServerManager
             teams[curTeam].Remove(pID);
         }
 
-        if(team != PlayerTeam.None)
+        if (team != PlayerTeam.None)
         {
             players.Add(pID, team);
             teams[team].Add(pID);
