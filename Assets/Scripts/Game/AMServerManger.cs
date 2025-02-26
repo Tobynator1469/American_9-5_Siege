@@ -1,13 +1,9 @@
-//#define DebugSkipCutscene
+#define DebugSkipCutscene
 
 using Assets.Scripts;
-using System;
 using System.Collections.Generic;
 using Unity.Netcode;
-using Unity.Services.Matchmaker.Models;
-using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
-using static UnityEditor.Progress;
 
 public enum PlayerTeam
 {

@@ -5,6 +5,8 @@ using UnityEngine.Video;
 
 public class AMS_LocalPlayer : LocalPlayer
 {
+    const int keysCount = 6;
+
     [SerializeField]
     private TextMeshProUGUI moneyText = null;
 
@@ -44,6 +46,21 @@ public class AMS_LocalPlayer : LocalPlayer
 
         if (Input.GetKeyDown(KeyCode.F2))
             SwitchTeams(PlayerTeam.Defender);
+
+        if(Input.GetKeyDown(KeyCode.G))
+        {
+            GetOwningPlayer<AMSPlayer>().DropItem_Rpc();
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha0 + i))
+            {
+                var Player = GetOwningPlayer<AMSPlayer>();
+
+                Player.ActivateItem_Rpc(i);
+            }
+        }
     }
 
     private void UpdateMoneyValue(int currentMoney)

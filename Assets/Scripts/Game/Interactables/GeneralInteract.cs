@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class GeneralInteract : Interactable
 {
-    public delegate void OnInteracted(GeneralInteract _this, ulong ID);
+    public delegate void OnInteracted(GeneralInteract _this, AMServerManger serverManger, ulong ID);
     public delegate void OnDestroyed_Interactable(GeneralInteract _this);
 
     private OnInteracted onInteracted = null;
@@ -30,7 +30,7 @@ public class GeneralInteract : Interactable
     protected override void OnInteract(ulong id, AMServerManger serverManger, Vector3 relativeDirection)
     {
         if (onInteracted != null)
-            onInteracted(this, id);
+            onInteracted(this, serverManger, id);
     }
 
     public override void OnNetworkDespawn()

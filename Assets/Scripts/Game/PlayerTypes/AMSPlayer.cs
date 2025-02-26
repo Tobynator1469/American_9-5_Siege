@@ -4,11 +4,13 @@ using UnityEngine;
 
 public struct ItemSlot
 {
+    public AMS_Item item;
     public Transform positionToStore;
     public bool hasItem;
 
     public ItemSlot(Transform positionToStore)
     {
+        this.item = null;
         this.positionToStore = positionToStore;
 
         hasItem = false;
@@ -74,13 +76,15 @@ public abstract class AMSPlayer : Player
     public PlayerTeam currentTeam = PlayerTeam.None;
 
     [SerializeField]
-    private ItemSlot[] holdingHand = null; //the hands where stuff gets hold
+    private ItemSlot[] holdingHand = new ItemSlot[6]; //the hands where stuff gets hold
 
     [SerializeField]
     private float raycastDistance = 4.0f;
 
     public int offshoreMoney = 0;
     public int playerHealth = 0;
+
+    public int activeSlot = 0;
 
     public int lastUpdateRoundMoney = 0;
     public int currentUpdateRoundMoney = 0;
@@ -202,7 +206,38 @@ public abstract class AMSPlayer : Player
 
         var srvManager = serverManager.GetComponent<AMServerManger>();
 
-        srvManager.OnPlayerTryInteract_ServerRpc(id, YDirection);
+        if (GetIsValidSlot(activeSlot) && holdingHand[activeSlot].hasItem)
+        {
+            holdingHand[activeSlot].item.Interact_ServerRpc(id, Vector3.zero);
+        }
+        else
+        {
+            srvManager.OnPlayerTryInteract_ServerRpc(id, YDirection);
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void ActivateItem_Rpc(int slot, RpcParams rpcParams = default)
+    {
+        if (!CheckServerAuthority(rpcParams))
+            return;
+
+        if(GetIsValidSlot(slot))
+        {
+            activeSlot = slot;
+
+            if (holdingHand[activeSlot].hasItem)
+                holdingHand[activeSlot].item.SetItemActive_ServerRpc(true);
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void DropItem_Rpc(RpcParams rpcParams = default)
+    {
+        if (!CheckAuthority(rpcParams))
+            return;
+
+        DropItem_ServerRpc();
     }
 
     [Rpc(SendTo.Server)]
@@ -219,6 +254,18 @@ public abstract class AMSPlayer : Player
             return;
 
         srvManager.OnPlayerSwitchTeams_ServerRpc(id, team);
+    }
+
+    [ServerRpc]
+    public void DropItem_ServerRpc()
+    {
+        if(GetIsValidSlot(activeSlot))
+        {
+            holdingHand[activeSlot].item.DropItem_ServerRpc();
+            holdingHand[activeSlot].item = null;
+
+            holdingHand[activeSlot].hasItem = false;
+        }
     }
 
     [ClientRpc]
@@ -337,6 +384,16 @@ public abstract class AMSPlayer : Player
                 break;
         }
     }
+    private int GetFreeItemSlot()
+    {
+        for (int i = 0; i < holdingHand.Length; i++)
+        {
+            if (!holdingHand[i].hasItem)
+                return i;
+        }
+
+        return -1;
+    }
 
     protected bool CanPickupItem(int slot)
     {
@@ -368,5 +425,44 @@ public abstract class AMSPlayer : Player
     public bool IsKnocked()
     {
         return hasBeenKnocked.GetBool();
+    }
+
+    public AMS_Item GetActiveItem()
+    {
+        if(GetIsValidSlot(activeSlot))
+        {
+            return holdingHand[activeSlot].item;
+        }
+
+        return null;
+    }
+
+    public bool PickupItem(AMS_Item item)
+    {
+        int slot = GetFreeItemSlot();
+
+        if (slot >= 0)
+        {
+            holdingHand[slot].hasItem = true;
+            holdingHand[slot].item = item;
+
+            item.holdingPosition = holdingHand[slot].positionToStore;
+
+            item.transform.SetParent(holdingHand[slot].positionToStore, false);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool GetIsValidSlot(int slot)
+    {
+        if(holdingHand.Length > 0 && slot < holdingHand.Length)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
