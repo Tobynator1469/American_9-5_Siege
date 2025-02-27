@@ -151,9 +151,9 @@ public abstract class AMSPlayer : Player
 
         if (playerHealth < 0)
         {
-            hasBeenKnocked = new PBool(PBool.EBoolState.TrueThisFrame); //Tell owning player hes knocked
+            hasBeenKnocked = new PBool(PBool.EBoolState.TrueThisFrame); //Tell owning player hes knocked7
 
-            OnPlayerAMS_Knocked_ClientRpc(); //Spawn Effects and tell Clients they can Arrest
+            this.serverManager.GetComponent<AMServerManger>().PlayerKnockedOut(this); //Spawn Effects and tell Clients they can Arrest
         }
     }
 
@@ -465,9 +465,11 @@ public abstract class AMSPlayer : Player
 
             item.holdingPosition = itemStoreTransform;
 
-            item.transform.SetParent(this.transform, false);
+            item.transform.SetParent(this.transform);
 
-            item.transform.SetPositionAndRotation(itemStoreTransform.position, itemStoreTransform.rotation);
+            item.UpdateItemPosition_ServerRpc(itemStoreTransform.position, itemStoreTransform.rotation);
+
+            //item.transform.SetPositionAndRotation(itemStoreTransform.position, itemStoreTransform.rotation);
 
             return true;
         }

@@ -104,9 +104,13 @@ public class AMServerManger : ServerManager
     [ServerRpc]
     protected override void OnStartGameBtnServerRpc()
     {
-        foreach (var connected in connectedPlayers)
+        var playerList = GetPlayerDictionary();
+
+        foreach (var connected in playerList)
         {
-            connected.Value.SetPendingGameStart_ServerRpc(true);
+            var amsPlayer = (AMSPlayer)connected.Value; // Every player is an Amsplayer so shouldnt be an issue
+
+            amsPlayer.SetPendingGameStart_ServerRpc(true);
         }
 
         if (!startGame && !hasGameStarted)
@@ -415,6 +419,11 @@ public class AMServerManger : ServerManager
                 }
             }
         }
+    }
+
+    public void PlayerKnockedOut(AMSPlayer player)
+    {
+        SpawnPlayer_ServerRpc(PlayerTeam.Spectator, player.id);
     }
 
     [ServerRpc]

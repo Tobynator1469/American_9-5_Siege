@@ -11,6 +11,7 @@ public abstract class AMS_Item : Interactable
     private Collider[] colliders = null;
 
     private Rigidbody rigidBody = null;
+    private ServerObject serverObjComp = null;
 
     public Transform holdingPosition = null; //The position where the Item is locked at, can be Hand or an Shelf
     private ulong ownerPlayerID = 0;
@@ -20,6 +21,12 @@ public abstract class AMS_Item : Interactable
     protected override void OnSpawned()
     {
         rigidBody = GetComponent<Rigidbody>();
+        serverObjComp = GetComponent<ServerObject>();
+
+        if(IsHost)
+        {
+            serverObjComp.ObjectUseNonServerPos_ServerRpc(true);
+        }
     }
 
     protected override void OnInteract(ulong id, AMServerManger serverManger, Vector3 relativeDirection)
@@ -34,6 +41,8 @@ public abstract class AMS_Item : Interactable
                 {
                     OnItemState(true, id);
                     SetItemActive_ServerRpc(false);
+
+                    SetIsKinemetic(true);
                 }
             }
         }
@@ -49,6 +58,15 @@ public abstract class AMS_Item : Interactable
 
             InteractWithItem(player);
         }
+    }
+
+    [ServerRpc]
+    public void UpdateItemPosition_ServerRpc(Vector3 pos, Quaternion quaternion)
+    {
+        rigidBody.position = pos;
+        rigidBody.rotation = quaternion;
+
+        serverObjComp.ServerUpdateObjectServerRpc();
     }
 
     [ServerRpc]
@@ -68,10 +86,13 @@ public abstract class AMS_Item : Interactable
                 colliders[i].enabled = active;
             }
         }
+    }
 
-        if(rigidBody)
+    private void SetIsKinemetic(bool active)
+    {
+        if (rigidBody)
         {
-            rigidBody.isKinematic = !active;
+            rigidBody.isKinematic = active;
         }
     }
 
@@ -111,7 +132,7 @@ public abstract class AMS_Item : Interactable
     {
         transform.SetParent(null, true);
 
-        rigidBody.isKinematic = false;
+        SetIsKinemetic(false);
 
         holdingPosition = null;
 

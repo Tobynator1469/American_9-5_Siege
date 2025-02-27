@@ -367,7 +367,7 @@ public class AMS_GameState : NetworkBehaviour
 
         SetPlayersMovementState_ServerRpc(false);
 
-        m_cachedTeams = new Dictionary<PlayerTeam, List<ulong>>(amsServerManger.GetTeamPlayerList());
+        m_cachedTeams = GetTeamListCopy();
 
         #region UpdateTeamsMoney
 
