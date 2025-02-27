@@ -224,6 +224,13 @@ public abstract class AMSPlayer : Player
         if (!CheckServerAuthority(rpcParams))
             return;
 
+        var activeItem = GetActiveItem();
+
+        if(activeItem)
+        {
+            activeItem.SetItemActive_ServerRpc(false);
+        }
+
         if(GetIsValidSlot(slot))
         {
             activeSlot = slot;

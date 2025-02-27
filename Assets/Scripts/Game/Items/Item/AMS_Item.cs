@@ -23,7 +23,7 @@ public abstract class AMS_Item : Interactable
         rigidBody = GetComponent<Rigidbody>();
         serverObjComp = GetComponent<ServerObject>();
 
-        if(IsHost)
+        if (IsHost)
         {
             serverObjComp.ObjectUseNonServerPos_ServerRpc(true);
         }
@@ -31,7 +31,7 @@ public abstract class AMS_Item : Interactable
 
     protected override void OnInteract(ulong id, AMServerManger serverManger, Vector3 relativeDirection)
     {
-        if(!hasBeenPickedUp)
+        if (!hasBeenPickedUp)
         {
             var player = serverManger.FindConnectedPlayer(id);
 
@@ -43,12 +43,13 @@ public abstract class AMS_Item : Interactable
                     SetItemActive_ServerRpc(false);
 
                     SetIsKinemetic(true);
+                    SetCollidersValue(false);
                 }
             }
         }
         else
         {
-            if(id != ownerPlayerID)
+            if (id != ownerPlayerID)
             {
                 DebugClass.Error("Non Owner tried interacting with Item");
                 return;
@@ -72,19 +73,9 @@ public abstract class AMS_Item : Interactable
     [ServerRpc]
     public void SetItemActive_ServerRpc(bool active)
     {
-        if(m_Renderer)
+        if (m_Renderer)
         {
             m_Renderer.enabled = active;
-        }
-
-       // isInteractable = active;
-
-        if (colliders != null)
-        {
-            for (int i = 0; i < colliders.Length; i++)
-            {
-                colliders[i].enabled = active;
-            }
         }
     }
 
@@ -93,6 +84,17 @@ public abstract class AMS_Item : Interactable
         if (rigidBody)
         {
             rigidBody.isKinematic = active;
+        }
+    }
+
+    private void SetCollidersValue(bool active)
+    {
+        if (colliders != null)
+        {
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                colliders[i].enabled = active;
+            }
         }
     }
 
@@ -106,17 +108,9 @@ public abstract class AMS_Item : Interactable
 
     }
 
-    [Rpc(SendTo.Server)]
-    public void DropItem_ServerRpc(RpcParams rpc = default)
+    [ServerRpc]
+    public void DropItem_ServerRpc()
     {
-        var senderID = rpc.Receive.SenderClientId;
-
-        if (senderID != ownerPlayerID && senderID != NetworkManager.ServerClientId)
-        {
-            DebugClass.Error("Non Owner Tried Droping up Item!");
-            return;
-        }
-
         ResetItem();
     }
 
@@ -133,6 +127,7 @@ public abstract class AMS_Item : Interactable
         transform.SetParent(null, true);
 
         SetIsKinemetic(false);
+        SetCollidersValue(true);
 
         holdingPosition = null;
 

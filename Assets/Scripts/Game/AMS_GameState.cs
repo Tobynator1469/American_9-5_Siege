@@ -260,6 +260,8 @@ public class AMS_GameState : NetworkBehaviour
 
     private void OnRoundStart()
     {
+        UpdatePlayerMoney();
+
         if (onGameRoundStarted != null)
             onGameRoundStarted(this);
 
@@ -275,6 +277,39 @@ public class AMS_GameState : NetworkBehaviour
     private void UpdateGame()
     {
 
+    }
+
+    private void UpdatePlayerMoney()
+    {
+        m_cachedTeams = GetTeamListCopy();
+
+        #region UpdateTeamsMoney
+
+        var listThief = m_cachedTeams[PlayerTeam.Thief];
+
+        if (listThief.Count > 0)
+        {
+            var thiefPlayer = amsServerManger.FindConnectedPlayer((listThief[0]));
+
+            if (thiefPlayer)
+            {
+                thiefPlayer.SetRoundMoney_ServerRpc(teamDictionary[PlayerTeam.Thief].roundMoney);
+            }
+        }
+
+        var listDefender = m_cachedTeams[PlayerTeam.Defender];
+
+        if (listDefender.Count > 0)
+        {
+            var defenderPlayer = amsServerManger.FindConnectedPlayer((listDefender[0]));
+
+            if (defenderPlayer)
+            {
+                defenderPlayer.SetRoundMoney_ServerRpc(teamDictionary[PlayerTeam.Defender].roundMoney);
+            }
+        }
+
+        #endregion
     }
 
     private bool OnNextRound()
@@ -366,36 +401,6 @@ public class AMS_GameState : NetworkBehaviour
         this.gameState = EGameState.RoundStart;
 
         SetPlayersMovementState_ServerRpc(false);
-
-        m_cachedTeams = GetTeamListCopy();
-
-        #region UpdateTeamsMoney
-
-        var listThief = m_cachedTeams[PlayerTeam.Thief];
-
-        if (listThief.Count > 0)
-        {
-            var thiefPlayer = amsServerManger.FindConnectedPlayer((listThief[0]));
-
-            if (thiefPlayer)
-            {
-                thiefPlayer.SetRoundMoney_ServerRpc(teamDictionary[PlayerTeam.Thief].roundMoney);
-            }
-        }
-
-        var listDefender = m_cachedTeams[PlayerTeam.Defender];
-
-        if (listDefender.Count > 0)
-        {
-            var defenderPlayer = amsServerManger.FindConnectedPlayer((listDefender[0]));
-
-            if (defenderPlayer)
-            {
-                defenderPlayer.SetRoundMoney_ServerRpc(teamDictionary[PlayerTeam.Defender].roundMoney);
-            }
-        }
-
-        #endregion
     }
 
     [ServerRpc]

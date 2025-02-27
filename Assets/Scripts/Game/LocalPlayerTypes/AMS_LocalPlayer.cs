@@ -1,7 +1,6 @@
 using Assets.Scripts;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Video;
 
 public class AMS_LocalPlayer : LocalPlayer
 {
@@ -54,7 +53,7 @@ public class AMS_LocalPlayer : LocalPlayer
             GetOwningPlayer<AMSPlayer>().DropItem_Rpc();
         }
 
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < keysCount; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
             {

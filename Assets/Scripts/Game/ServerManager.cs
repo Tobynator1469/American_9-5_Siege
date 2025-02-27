@@ -592,9 +592,9 @@ public class ServerManager : NetworkBehaviour
         return defaultPlayerRunningSpeed;
     }
 
-    static public bool CheckAuthorityServer(RpcParams param)
+    static public bool CheckAuthorityServer(RpcParams rpcParams)
     {
-        return param.Receive.SenderClientId == 0;
+        return rpcParams.Receive.SenderClientId == NetworkManager.ServerClientId;
     }
 
     protected GameObject GetDefaultPlayerPrefab()

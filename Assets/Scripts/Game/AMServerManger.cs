@@ -1,9 +1,10 @@
-#define DebugSkipCutscene
+//#define DebugSkipCutscene
 
 using Assets.Scripts;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 using static AMServerManger;
 using static Player;
 
@@ -130,9 +131,17 @@ public class AMServerManger : ServerManager
                 if (timeTillStartCur >= timeTillStart)
                 {
                     startGame = false;
-                    hasGameStarted = true;
 
-                    OnGameStarted_ServerRpc();
+                    if(GetPlayerList().Count >= 2)
+                    {
+                        hasGameStarted = true;
+
+                        OnGameStarted_ServerRpc();
+                    }
+                    else
+                    {
+                        DebugClass.Warning("Cant Start game with only two players!");
+                    }
                 }
                 else
                     timeTillStartCur += Time.deltaTime;
@@ -504,7 +513,80 @@ public class AMServerManger : ServerManager
 
     protected void BalanceTeams()
     {
-        GetPlayerList();
+        var players = playerCopy;
+
+        Dictionary<PlayerTeam, List<ulong>> dictionaryCount = new()
+        {
+            {PlayerTeam.Thief, new List<ulong>()},
+            {PlayerTeam.Defender, new List<ulong>()},
+        };
+
+        var pList = GetPlayerList();
+
+        for (int i = 0; i < pList.Count; i++)
+        {
+            if (!players.ContainsKey(pList[i].id))
+                players.Add(pList[i].id, PlayerTeam.Thief);
+        }
+
+        foreach (var player in players)
+        {
+            switch (player.Value)
+            {
+                case PlayerTeam.Thief:
+                    dictionaryCount[PlayerTeam.Thief].Add(player.Key);
+                    break;
+                case PlayerTeam.Defender:
+                    dictionaryCount[PlayerTeam.Defender].Add(player.Key);
+                    break;
+
+                default:
+                    dictionaryCount[PlayerTeam.Thief].Add(player.Key);
+                    break;
+            }
+        }
+
+        var thiefTeam = dictionaryCount[PlayerTeam.Thief];
+        var defenderTeam = dictionaryCount[PlayerTeam.Defender];
+
+        if(thiefTeam.Count != defenderTeam.Count)
+        {
+            DebugClass.Log("Team count unbalanced, Balancing Teams!");
+        }
+
+        while (thiefTeam.Count != defenderTeam.Count)
+        {
+            var difference = thiefTeam.Count - defenderTeam.Count;
+
+            if(difference < 0)
+            {
+                var lastPlayer = defenderTeam[defenderTeam.Count - 1];
+
+                thiefTeam.Add(lastPlayer);
+
+                defenderTeam.Remove(lastPlayer);
+            }
+            else if(difference > 0)
+            {
+                var lastPlayer = thiefTeam[thiefTeam.Count - 1];
+
+                defenderTeam.Add(lastPlayer);
+
+                thiefTeam.Remove(lastPlayer);
+            }
+        }
+
+        playerCopy = new Dictionary<ulong, PlayerTeam>();
+
+        for (int i = 0; i < thiefTeam.Count; i++)
+        {
+            playerCopy.Add(thiefTeam[i], PlayerTeam.Thief);
+        }
+
+        for (int i = 0; i < defenderTeam.Count; i++)
+        {
+            playerCopy.Add(defenderTeam[i], PlayerTeam.Defender);
+        }
     }
 
     protected PlayerTeam FindPlayerTeam(ulong pID)
