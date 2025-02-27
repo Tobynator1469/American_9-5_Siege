@@ -194,9 +194,9 @@ MonoBehaviour:
   runningSpeed: 14
   movementSpeed: 6
   jumpHeight: 4
-  maxStamina: 100
-  regenStaminaAmount: 10
-  degenStaminaAmount: 20
+  maxStamina: 110
+  regenStaminaAmount: 20
+  degenStaminaAmount: 10
   currentStamina: 0
   currentTeam: 2
   holdingHandspots:

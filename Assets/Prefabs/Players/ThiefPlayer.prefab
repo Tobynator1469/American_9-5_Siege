@@ -191,12 +191,12 @@ MonoBehaviour:
   playerName: 
   id: 0
   gravity: 9.8
-  runningSpeed: 14
+  runningSpeed: 12
   movementSpeed: 6
   jumpHeight: 4
-  maxStamina: 100
+  maxStamina: 140
   regenStaminaAmount: 10
-  degenStaminaAmount: 20
+  degenStaminaAmount: 10
   currentStamina: 0
   currentTeam: 0
   holdingHandspots:
