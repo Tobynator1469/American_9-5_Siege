@@ -45,6 +45,15 @@ public class AMServerManger : ServerManager
 
     private AMS_GameState gameState = null; //Current Game State
 
+    [SerializeField]
+    private Transform[] lobbySpawnpoints = null;
+
+    [SerializeField]
+    private Transform[] defenderSpawnpoints = null;
+
+    [SerializeField]
+    private Transform[] thiefsSpawnpoints = null;
+
     private MultiplayerCutscene currentPlayingCutscene = null;
 
     Dictionary<ulong, AMSPlayer> connectedPlayers = new Dictionary<ulong, AMSPlayer>();
@@ -242,6 +251,82 @@ public class AMServerManger : ServerManager
         SwitchPlayerToTeam_ClientRpc(id, team);
     }
 
+    [ServerRpc]
+    public void SpawnPlayer_ServerRpc(PlayerTeam team, ulong id, Vector3 pos, Quaternion rot)
+    {
+        var player_ = FindPlayer(id);
+
+        if (!player_)
+        {
+            DebugClass.Error("Failed to Spawn Player!, Player was Invalid!");
+            return;
+        }
+
+        string playerName = player_.playerName;
+
+        DestroyPlayer_ServerRpc(id); //Destroy Instance before instantiating another one
+
+        GameObject instance = null;
+
+        bool isSpectator = false;
+
+        switch (team)
+        {
+            case PlayerTeam.Lobby:
+                instance = Instantiate(GetDefaultPlayerPrefab(), pos, rot);
+                break;
+            case PlayerTeam.Thief:
+                instance = Instantiate(ThiefPrefab, pos, rot);
+                break;
+            case PlayerTeam.Defender:
+                instance = Instantiate(DefenderPrefab, pos, rot);
+                break;
+            case PlayerTeam.Spectator:
+                instance = Instantiate(SpectatorPrefab, pos, rot);
+                isSpectator = true;
+                break;
+
+            default:
+                return;
+        }
+
+        var netObjComp = instance.GetComponent<NetworkObject>();
+        var playerComp = netObjComp.GetComponent<AMSPlayer>();
+
+        //Update Player Instance
+
+        #region UpdateList
+
+        if (!connectedPlayers.ContainsKey(id))
+            connectedPlayers.Add(id, playerComp);
+        else
+            connectedPlayers[id] = playerComp;
+
+        #endregion
+
+        IntializeDefaults_PlayerComp(playerComp);
+
+        playerComp.BindOnDestroy(OnPlayerDestroyed);
+
+        playerComp.id = id;
+
+        playerComp.playerName = playerName;
+
+        netObjComp.Spawn(true);
+
+        if (isSpectator)
+            CreateAMS_SpectatorLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
+        else
+            CreateLocalPlayerRpc(netObjComp.NetworkObjectId, RpcTarget.Single(id, RpcTargetUse.Temp));
+
+        ShareNewNameClientRpc(netObjComp.NetworkObjectId, playerName);
+
+        ShareNewPlayerTeam_ClientRpc(netObjComp.NetworkObjectId, team);
+
+        DebugClass.Log("Switching Player to Team: " + team.ToString());
+        SwitchPlayerToTeam_ClientRpc(id, team);
+    }
+
     [Rpc(SendTo.SpecifiedInParams)]
     protected void CreateAMS_SpectatorLocalPlayerRpc(ulong EntityID, RpcParams toSender)
     {
@@ -309,12 +394,48 @@ public class AMServerManger : ServerManager
 
         BalanceTeams();
 
+        var thiefSpawns = GetPlayerSpawns(PlayerTeam.Thief);
+        var defenderSpawns = GetPlayerSpawns(PlayerTeam.Defender);
+
+        int thiefI = 0;
+        int defenderI = 0;
+
         var playerEntries = new List<KeyValuePair<ulong, PlayerTeam>>(playerCopy);
 
         foreach (var item in playerEntries)
         {
-            SpawnPlayer_ServerRpc(item.Value, item.Key);
-            SwitchPlayerToTeam_ClientRpc(item.Key, item.Value);
+            switch (item.Value)
+            {
+                case PlayerTeam.Thief:
+                    if (thiefI >= thiefSpawns.Length)
+                        thiefI = 0;
+
+                    for (; thiefI < thiefSpawns.Length; thiefI++)
+                    {
+                        var thiefSpawn = thiefSpawns[thiefI];
+
+                        SpawnPlayer_ServerRpc(item.Value, item.Key, thiefSpawn.position, thiefSpawn.rotation);
+                        SwitchPlayerToTeam_ClientRpc(item.Key, item.Value);
+                    }
+                        break;
+
+                case PlayerTeam.Defender:
+
+                    if (defenderI >= defenderSpawns.Length)
+                        defenderI = 0;
+
+                    for (; defenderI < defenderSpawns.Length; defenderI++)
+                    {
+                        var defenderSpawn = defenderSpawns[defenderI];
+
+                        SpawnPlayer_ServerRpc(item.Value, item.Key, defenderSpawn.position, defenderSpawn.rotation);
+                        SwitchPlayerToTeam_ClientRpc(item.Key, item.Value);
+                    }
+
+                    break;
+                default:
+                    break;
+            }
         }
 
         SpawnGameState();
@@ -639,5 +760,25 @@ public class AMServerManger : ServerManager
     public bool HasConnctedPlayer(ulong pID)
     {
         return connectedPlayers.ContainsKey(pID);
+    }
+
+    public Transform[] GetPlayerSpawns(PlayerTeam team)
+    {
+        switch (team)
+        {
+            case PlayerTeam.Lobby:
+                break;
+
+            case PlayerTeam.Thief:
+                return thiefsSpawnpoints;
+
+            case PlayerTeam.Defender:
+                return defenderSpawnpoints;
+
+            default:
+                break;
+        }
+
+        return null;
     }
 }

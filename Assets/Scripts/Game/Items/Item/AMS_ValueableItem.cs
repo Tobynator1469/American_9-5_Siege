@@ -9,4 +9,9 @@ public class AMS_ValueableItem : AMS_Item
     {
         return itemValue;
     }
+
+    protected override bool CanPickup(AMSPlayer player)
+    {
+        return base.CanPickup(player) && player.currentTeam == PlayerTeam.Thief;
+    }
 }

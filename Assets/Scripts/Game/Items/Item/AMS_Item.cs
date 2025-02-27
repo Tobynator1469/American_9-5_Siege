@@ -31,10 +31,10 @@ public abstract class AMS_Item : Interactable
 
     protected override void OnInteract(ulong id, AMServerManger serverManger, Vector3 relativeDirection)
     {
-        if (!hasBeenPickedUp)
-        {
-            var player = serverManger.FindConnectedPlayer(id);
+        var player = serverManger.FindConnectedPlayer(id);
 
+        if (!hasBeenPickedUp && CanPickup(player))
+        {
             if (player)
             {
                 if (player.PickupItem(this))
@@ -55,10 +55,13 @@ public abstract class AMS_Item : Interactable
                 return;
             }
 
-            var player = serverManger.FindConnectedPlayer(id);
-
             InteractWithItem(player);
         }
+    }
+
+    protected virtual bool CanPickup(AMSPlayer player)
+    {
+        return (player != null);
     }
 
     [ServerRpc]

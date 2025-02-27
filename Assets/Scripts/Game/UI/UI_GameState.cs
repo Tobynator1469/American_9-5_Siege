@@ -153,9 +153,17 @@ public class UI_GameState : MonoBehaviour
 
     private void ExecuteEventInternal(string text, float showTime, float holdTime, float hideTime)
     {
+        const float offsetHeight = 35.0f;
+
         ResetShowEvent();
 
         GameStateText.text = text;
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(GameStateText.rectTransform);
+
+        var barTransform = GameStateBar.rectTransform;
+
+        barTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, GameStateText.preferredHeight + offsetHeight);
 
         eventShowTime = showTime;
         eventHoldTime = holdTime;
@@ -163,6 +171,8 @@ public class UI_GameState : MonoBehaviour
 
         hasEvent = true;
     }
+
+
 
     public void ExecuteEvent(string text, float showTime, float holdTime, float hideTime) //Places an Event in the Queue System that later gets called
     {

@@ -19,6 +19,7 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.BindOnGameChangedRoundMoney(OnRoundMoneyChanged);
         amsPlayer.BindOnChangedTeam(OnTeamChanged);
         amsPlayer.BindOnGameResultState(OnGameResult);
+        amsPlayer.BindOnGameStarted(OnGameStarted);
 
         GetServerManager<AMServerManger>().GetServerPlayerDataRpc();
     }
@@ -31,6 +32,7 @@ public class AMS_LocalPlayer : LocalPlayer
         amsPlayer.UnbindOnGameChangedRoundMoney(OnRoundMoneyChanged);
         amsPlayer.UnbindOnChangedTeam(OnTeamChanged);
         amsPlayer.UnbindOnGameResultState(OnGameResult);
+        amsPlayer.UnbindOnGameStarted(OnGameStarted);
     }
 
     protected override void OnUpdateClientControls()
@@ -101,6 +103,21 @@ public class AMS_LocalPlayer : LocalPlayer
     private void OnGamePendingState(AMSPlayer _this, bool isGamePendingStart)
     {
         CreateGameState("Game Pending Start!", 1.0f, 2.0f, 1.0f);
+    }
+
+    private void OnGameStarted(AMSPlayer _this, PlayerTeam pickedTeam)
+    {
+        switch (pickedTeam)
+        {
+            case PlayerTeam.Thief:
+                CreateGameState("You are a Robber, Steal as much as you can!", 1.0f, 2.0f, 1.0f);
+                break;
+            case PlayerTeam.Defender:
+                CreateGameState("You are a Defender, Defend your Stuff!", 1.0f, 2.0f, 1.0f);
+                break;
+            default:
+                break;
+        }
     }
 
     private void OnGameResult(Player _this, bool hasWon)

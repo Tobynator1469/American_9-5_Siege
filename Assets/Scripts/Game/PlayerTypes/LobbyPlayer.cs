@@ -9,6 +9,7 @@ public class LobbyPlayer : AMSPlayer
     {
         this.isInSafeZone.DeframeBool();
         this.hasWon.DeframeBool();
+        this.gameIntermission.DeframeBool();
     }
 
     [ServerRpc]

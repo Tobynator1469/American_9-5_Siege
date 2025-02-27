@@ -204,7 +204,7 @@ MonoBehaviour:
   - {fileID: 939079793098831943}
   raycastDistance: 4
   offshoreMoney: 0
-  playerHealth: 0
+  playerHealth: 10
   activeSlot: 0
   lastUpdateRoundMoney: 0
   currentUpdateRoundMoney: 0
@@ -225,7 +225,7 @@ MonoBehaviour:
   baseDamage: 2
   delayTillCanBeDamaged: 1
   knockbackAmount: 10
-  delayedDamage: 0
+  delayedDamage: 1
 --- !u!1 &1452520740376009393
 GameObject:
   m_ObjectHideFlags: 0

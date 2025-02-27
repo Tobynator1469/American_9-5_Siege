@@ -401,6 +401,8 @@ public class AMS_GameState : NetworkBehaviour
         this.gameState = EGameState.RoundStart;
 
         SetPlayersMovementState_ServerRpc(false);
+
+        TriggerPlayerIntermission_ServerRpc();
     }
 
     [ServerRpc]
@@ -411,6 +413,17 @@ public class AMS_GameState : NetworkBehaviour
         foreach(var player in connectedPlayers)
         {
             player.Value.SetCanMoveServerRpc(canMove);
+        }
+    }
+
+    [ServerRpc]
+    private void TriggerPlayerIntermission_ServerRpc()
+    {
+        var connectedPlayers = amsServerManger.GetConnectedPlayers();
+
+        foreach (var player in connectedPlayers)
+        {
+            player.Value.TriggerPlayerIntermission_ServerRpc();
         }
     }
 
@@ -429,6 +442,12 @@ public class AMS_GameState : NetworkBehaviour
     {
         var teams = m_cachedTeams;
 
+        var thiefSpawns = amsServerManger.GetPlayerSpawns(PlayerTeam.Thief);
+        var defenderSpawns = amsServerManger.GetPlayerSpawns(PlayerTeam.Defender);
+
+        int thiefI = 0;
+        int defenderI = 0;
+
         foreach (var team in teams)
         {
             switch (team.Key)
@@ -436,13 +455,29 @@ public class AMS_GameState : NetworkBehaviour
                 case PlayerTeam.Thief:
                     for (int i = 0; i < team.Value.Count; i++)
                     {
-                        amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Defender, team.Value[i]);
+                        if (defenderI >= defenderSpawns.Length)
+                            defenderI = 0;
+
+                        for (; defenderI < defenderSpawns.Length; defenderI++)
+                        {
+                            var defenderSpawn = defenderSpawns[defenderI];
+
+                            amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Defender, team.Value[i], defenderSpawn.position, defenderSpawn.rotation);
+                        }
                     }
                     break;
                 case PlayerTeam.Defender:
                     for (int i = 0; i < team.Value.Count; i++)
                     {
-                        amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Thief, team.Value[i]);
+                        if (thiefI >= thiefSpawns.Length)
+                            thiefI = 0;
+
+                        for (; thiefI < thiefSpawns.Length; thiefI++)
+                        {
+                            var thiefSpawn = thiefSpawns[thiefI];
+
+                            amsServerManger.SpawnPlayer_ServerRpc(PlayerTeam.Thief, team.Value[i], thiefSpawn.position, thiefSpawn.rotation);
+                        }
                     }
                     break;
                 default:
