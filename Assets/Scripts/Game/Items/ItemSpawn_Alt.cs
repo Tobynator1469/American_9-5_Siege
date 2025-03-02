@@ -31,7 +31,15 @@ public class ItemSpawn_Alt : NetworkBehaviour
 
     private void Update()
     {
-
+#if DebugStuff_
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            if (IsHost)
+            {
+                SpawnStuff_ServerRpc();
+            }
+        }
+#endif
     }
 
     [ServerRpc]

@@ -31,6 +31,7 @@ public class ItemSpawn : NetworkBehaviour
     void Start()
     {
 
+        possibleSpawns = FindAllItemSpawns();
     }
 
     public void DecideSpawned(GameObject listObj)
@@ -47,6 +48,7 @@ public class ItemSpawn : NetworkBehaviour
         else if (CurrentMVLimit >= 0)
         {
             selectedList = MediumValueStuff;
+            CurrentMVLimit--;
         }
         else
         {
@@ -75,8 +77,6 @@ public class ItemSpawn : NetworkBehaviour
         CurrentMVLimit = MVLimit;
         
         DestroyAllSpawned();
-
-        possibleSpawns = FindAllItemSpawns();
 
         System.Random rng = new System.Random();
         var shuffledSpawns = possibleSpawns.OrderBy(_ => rng.Next()).ToList();
