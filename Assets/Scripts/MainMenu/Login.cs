@@ -32,6 +32,9 @@ public class Login : MonoBehaviour
     private Image AmsLogo = null;
 
     [SerializeField]
+    private Image bettlerImage = null;
+
+    [SerializeField]
     private Button playButton = null;
 
     [SerializeField]
@@ -107,6 +110,8 @@ public class Login : MonoBehaviour
             AmsLogo.gameObject.SetActive(false);
 
             goBackToMainMenuButton.gameObject.SetActive(true);
+
+            bettlerImage.gameObject.SetActive(true);
         }
         else
             ShowMainMenu(isInMainMenu);
@@ -115,6 +120,8 @@ public class Login : MonoBehaviour
     void ShowMainMenu(bool value)
     {
         isInMainMenu = value;
+
+        bettlerImage.gameObject.SetActive(false);
 
         loginButton.gameObject.SetActive(!value);
         registerButton.gameObject.SetActive(!value);
