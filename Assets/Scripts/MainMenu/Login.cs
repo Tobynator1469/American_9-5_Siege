@@ -16,6 +16,9 @@ public class Login : MonoBehaviour
     [SerializeField] 
     private Button registerButton = null;
 
+    [SerializeField]
+    private Button goBackToMainMenuButton = null;
+
     [SerializeField] 
     private TMPro.TMP_InputField usernameField = null;
     [SerializeField] 
@@ -25,9 +28,23 @@ public class Login : MonoBehaviour
     [SerializeField]
     private TMPro.TMP_InputField SQL_IPField = null;
 
+    [SerializeField]
+    private Image AmsLogo = null;
+
+    [SerializeField]
+    private Button playButton = null;
+
+    [SerializeField]
+    private Button creditsButton = null;
+
+    [SerializeField]
+    private Button quitButton = null;
+
     //false  = done, true = working
     private bool loginState = false; 
     private bool registerState = false; 
+
+    private bool isInMainMenu = true;
 
     void Start()
     {
@@ -35,6 +52,12 @@ public class Login : MonoBehaviour
         registerButton.onClick.AddListener(OnClickRegister);
         IPField.onEndEdit.AddListener(OnEndEdit);
         SQL_IPField.onEndEdit.AddListener(OnEndEdit_SQL);
+
+        goBackToMainMenuButton.onClick.AddListener(OnClickGoBack);
+
+        playButton.onClick.AddListener(OnClickPlay);
+        creditsButton.onClick.AddListener(OnClickCredits);
+        quitButton.onClick.AddListener(OnClickQuit);
     }
 
     private void OnDestroy()
@@ -43,6 +66,12 @@ public class Login : MonoBehaviour
         registerButton.onClick.RemoveAllListeners();
         IPField.onEndEdit.RemoveAllListeners();
         SQL_IPField.onEndEdit.RemoveAllListeners();
+
+        goBackToMainMenuButton.onClick.RemoveAllListeners();
+
+        playButton.onClick.RemoveAllListeners();
+        creditsButton.onClick.RemoveAllListeners();
+        quitButton.onClick.RemoveAllListeners();
     }
 
     void OnSuccessFullLogin(Dictionary<string, string> jsonBody)
@@ -60,6 +89,47 @@ public class Login : MonoBehaviour
             Debug.LogError("Failed to retrieve cookie");
         }
     }
+
+    void ShowCredits(bool value)
+    {
+        if (value)
+        {
+            loginButton.gameObject.SetActive(false);
+            registerButton.gameObject.SetActive(false);
+            usernameField.gameObject.SetActive(false);
+            passwordField.gameObject.SetActive(false);
+            IPField.gameObject.SetActive(false);
+            SQL_IPField.gameObject.SetActive(false);
+
+            playButton.gameObject.SetActive(false);
+            creditsButton.gameObject.SetActive(false);
+            quitButton.gameObject.SetActive(false);
+            AmsLogo.gameObject.SetActive(false);
+
+            goBackToMainMenuButton.gameObject.SetActive(true);
+        }
+        else
+            ShowMainMenu(isInMainMenu);
+    }
+
+    void ShowMainMenu(bool value)
+    {
+        isInMainMenu = value;
+
+        loginButton.gameObject.SetActive(!value);
+        registerButton.gameObject.SetActive(!value);
+        goBackToMainMenuButton.gameObject.SetActive(!value);
+        usernameField.gameObject.SetActive(!value);
+        passwordField.gameObject.SetActive(!value);
+        IPField.gameObject.SetActive(!value);
+        SQL_IPField.gameObject.SetActive(!value);
+
+        AmsLogo.gameObject.SetActive(value);
+        playButton.gameObject.SetActive(value);
+        creditsButton.gameObject.SetActive(value);
+        quitButton.gameObject.SetActive(value);
+    }
+
 
     void OnClickLogin()
     {
@@ -201,6 +271,31 @@ public class Login : MonoBehaviour
 
             registerState = false;
         }
+    }
+
+    void OnClickGoBack()
+    {
+        ShowMainMenu(true);
+    }
+
+    void OnClickPlay()
+    {
+        ShowMainMenu(false);
+    }
+
+    void OnClickCredits()
+    {
+        ShowCredits(true);
+    }
+
+    void OnClickQuit()
+    {
+        CleanUpAndQuit(this);
+    }
+
+    static void CleanUpAndQuit(Login loginInstance)
+    {
+        Application.Quit();
     }
 
     private bool isValidData(string username, string password)

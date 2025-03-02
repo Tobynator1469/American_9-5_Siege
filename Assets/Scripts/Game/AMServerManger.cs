@@ -1,6 +1,7 @@
 //#define DebugSkipCutscene
 
 using Assets.Scripts;
+using JetBrains.Annotations;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -670,6 +671,8 @@ public class AMServerManger : ServerManager
         var thiefTeam = dictionaryCount[PlayerTeam.Thief];
         var defenderTeam = dictionaryCount[PlayerTeam.Defender];
 
+        bool isUnbalancable = ((thiefTeam.Count + defenderTeam.Count) % 2 == 1);
+
         if(thiefTeam.Count != defenderTeam.Count)
         {
             DebugClass.Log("Team count unbalanced, Balancing Teams!");
@@ -686,6 +689,9 @@ public class AMServerManger : ServerManager
                 thiefTeam.Add(lastPlayer);
 
                 defenderTeam.Remove(lastPlayer);
+
+                if (isUnbalancable && difference == -1)
+                    break;
             }
             else if(difference > 0)
             {
@@ -694,6 +700,9 @@ public class AMServerManger : ServerManager
                 defenderTeam.Add(lastPlayer);
 
                 thiefTeam.Remove(lastPlayer);
+
+                if (isUnbalancable && difference == 1)
+                    break;
             }
         }
 

@@ -257,45 +257,6 @@ public class Player : NetworkBehaviour
         (playerCapsuleCollider.height / 2.0f) + 0.05f,
         ~0,
         QueryTriggerInteraction.Ignore);
-
-
-        if (IsHost)
-        {
-            if (timeSinceWalking >= 2.0f)
-            {
-                if (currentStamina < maxStamina)
-                {
-                    currentStamina += (regenStaminaAmount * Time.deltaTime);
-
-                    if (currentStamina > maxStamina)
-                        currentStamina = maxStamina;
-                }
-            }
-            else
-                timeSinceWalking += Time.deltaTime;
-
-            if (isForcedSliding)
-            {
-
-                if (forceSlideTimeCurrent >= forceSlideTime)
-                {
-                    forceSlideTimeCurrent = 0.0f;
-                    isForcedSliding = false;
-
-                    canMove = true;
-                }
-                else
-                    forceSlideTimeCurrent += Time.deltaTime;
-            }
-
-            this.UpdatePlayerGravity_ServerRpc();
-
-            this.OnNetworkRequestUpdateData_ServerRpc();
-
-            this.isAlive.DeframeBool();
-
-            DeframeBools_ServerRpc();
-        }
     }
 
     [ServerRpc]
@@ -742,7 +703,43 @@ public class Player : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (IsHost)
+        {
+            if (timeSinceWalking >= 2.0f)
+            {
+                if (currentStamina < maxStamina)
+                {
+                    currentStamina += (regenStaminaAmount * Time.deltaTime);
 
+                    if (currentStamina > maxStamina)
+                        currentStamina = maxStamina;
+                }
+            }
+            else
+                timeSinceWalking += Time.deltaTime;
+
+            if (isForcedSliding)
+            {
+
+                if (forceSlideTimeCurrent >= forceSlideTime)
+                {
+                    forceSlideTimeCurrent = 0.0f;
+                    isForcedSliding = false;
+
+                    canMove = true;
+                }
+                else
+                    forceSlideTimeCurrent += Time.deltaTime;
+            }
+
+            this.UpdatePlayerGravity_ServerRpc();
+
+            this.OnNetworkRequestUpdateData_ServerRpc();
+
+            this.isAlive.DeframeBool();
+
+            DeframeBools_ServerRpc();
+        }
     }
 
     private void Initialize()
