@@ -55,6 +55,7 @@ public class LocalPlayer : MonoBehaviour
             return;
 
         this.OnUpdateClientCamera();
+        this.OnUpdateClientControls();
     }
 
     private void FixedUpdate()
@@ -63,8 +64,6 @@ public class LocalPlayer : MonoBehaviour
             return;
 
         OnUpdatePlayersUI();
-
-        this.OnUpdateClientControls();
     }
 
     protected virtual void OnInitialized()
