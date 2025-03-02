@@ -3,14 +3,15 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using System.Linq;
+
 
 
 public class ItemSpawn : NetworkBehaviour
 {
-    [SerializeField]
     private List<GameObject> possibleSpawns = new List<GameObject>();
 
-    public List<GameObject> Weapons = new List<GameObject>();
+    //public List<GameObject> Weapons = new List<GameObject>();
     public List<GameObject> LowValueStuff = new List<GameObject>();
     public List<GameObject> MediumValueStuff = new List<GameObject>();
     public List<GameObject> HighValueStuff = new List<GameObject>();
@@ -18,39 +19,23 @@ public class ItemSpawn : NetworkBehaviour
     private List<GameObject> selectedList;
     private List<GameObject> spawnedStuff = new List<GameObject>();
 
-    [SerializeField]
-    private int WPLimit = 1;
+    //[SerializeField]
+    //private int WPLimit = 1;
 
-    [SerializeField]
-    private int LVLimit = 1;
 
     [SerializeField]
     private int MVLimit = 1;
+    
+    private int CurrentMVLimit = 0;
 
     void Start()
     {
 
     }
 
-    public void pickList()
-    {
-        List<List<GameObject>> picked = new List<List<GameObject>> { Weapons, LowValueStuff, MediumValueStuff };
-
-    }
-
     public void DecideSpawned(GameObject listObj)
     {
         Debug.Log($"Der Spawn {listObj.name} hat den Tag {listObj.tag}.");
-
-        List<List<GameObject>> lists = new List<List<GameObject>> { Weapons, LowValueStuff, MediumValueStuff };
-
-        /*
-         E Z D  S A N
-         V F S  V F S
-         S A N  E Z D
-         
-         
-         */
 
 
 
@@ -59,12 +44,17 @@ public class ItemSpawn : NetworkBehaviour
         {
             selectedList = HighValueStuff;
         }
+        else if (CurrentMVLimit >= 0)
+        {
+            selectedList = MediumValueStuff;
+        }
         else
         {
-            selectedList = lists[UnityEngine.Random.Range(0, lists.Count)];
+            selectedList = LowValueStuff;
         }
+        
 
-        if (selectedList.Count == 0)
+        if (selectedList.Count == 0 || selectedList == null)
         {
             Debug.LogWarning("Die gewählte Liste ist leer!");
             return;
@@ -75,24 +65,30 @@ public class ItemSpawn : NetworkBehaviour
         GameObject selectedObject = selectedList[UnityEngine.Random.Range(0, selectedList.Count)];
         GameObject spawnedObject = Instantiate(selectedObject, listObj.transform.position, Quaternion.identity);
         spawnedStuff.Add(spawnedObject);
-        
 
+        selectedList = null;
 
     }
 
     public void SpawnItems()
     {
+        CurrentMVLimit = MVLimit;
         
         DestroyAllSpawned();
 
         possibleSpawns = FindAllItemSpawns();
 
-        if (possibleSpawns.Count > 0)
-        {
-            foreach (GameObject spawn in possibleSpawns)
-            {
-                
+        System.Random rng = new System.Random();
+        var shuffledSpawns = possibleSpawns.OrderBy(_ => rng.Next()).ToList();
 
+        
+
+        if (shuffledSpawns.Count > 0)
+        {
+            foreach (GameObject spawn in shuffledSpawns)
+            {
+                Debug.Log(spawn);
+                
                 DecideSpawned(spawn);
             }
         }
@@ -100,6 +96,11 @@ public class ItemSpawn : NetworkBehaviour
 
     public void DestroyAllSpawned()
     {
+        if (spawnedStuff.Count <= 0)
+        {
+            return;
+        }
+
         foreach (GameObject obj in spawnedStuff)
         {
             if (obj != null)
